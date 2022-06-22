@@ -1,6 +1,4 @@
-import functools
 import os
-import warnings
 from typing import Optional, Callable
 
 from dotenv import load_dotenv, find_dotenv

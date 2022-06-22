@@ -1,9 +1,8 @@
+
 from collections import Callable
 from typing import List, Optional, Union
 
-from src.experiment_runner import ExperimentRunner
-
-Callable_Runner_With_Optional = Union[Callable[[ExperimentRunner, ...], ...], Callable[[ExperimentRunner], ...]]
+Callable_Runner_With_Optional = Callable
 
 
 class Pipeline:
