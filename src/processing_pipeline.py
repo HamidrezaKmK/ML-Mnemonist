@@ -60,10 +60,10 @@ class Pipeline:
         """
         self._all_functions.clear()
 
-    def run(self, keep: bool, verbose: int, runner: ExperimentRunner, *args, **kwargs) -> None:
-        """ 
+    def run(self, keep: bool, verbose: int, runner, *args, **kwargs) -> None:
+        """
         Runs the whole pipeline. If the keep flag is set to true, then the pipeline would remain the same
-        after running. However, if it set to false, then all the things that are ran will be removed.  
+        after running. However, if it set to false, then all the things that are ran will be removed.
         """
         begin = True
         nxt_layer = None
