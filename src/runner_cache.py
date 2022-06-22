@@ -11,7 +11,7 @@ class RunnerCache:
 
     def __init__(self, directory: str, token: Optional[str] = None):
         self._cache_token = token if token is not None else f'tok-{random.randint(1, 300)}'
-        self._cached_primitives: Dict[str, Union[str, int, List]] = {}
+        self._cached_primitives: Dict[str, Any] = {}
         self._cached_models: Dict[str, nn.Module] = {}
         self.directory = directory
 
@@ -55,7 +55,8 @@ class RunnerCache:
 
         # Save all of the current models
         for name in self._cached_models.keys():
-            torch.save(self._cached_models[name].state_dict(), f'{self._cache_token}-model.{name}.pth')
+            torch.save(self._cached_models[name].state_dict(),
+                       os.path.join(self.directory, f'{self._cache_token}-model.{name}.pth'))
 
     def SET_IFN(self, name: str, value: Any):
         if name not in self._cached_primitives:
