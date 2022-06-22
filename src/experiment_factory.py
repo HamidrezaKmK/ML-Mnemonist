@@ -45,11 +45,11 @@ class ExperimentRunnerFactory:
         if all_args[0] is None:
             raise RuntimeError("No experiment directory defined in constructor or .env!\n"
                                "Define in .env using EXPERIMENT_DIR=/PATH/TO/DIR")
-        self.experiment_dir = all_args[0]
+        self.experiment_dir = os.path.join(all_args[0], 'mnemonic-experiments')
         if all_args[2] is None:
             raise RuntimeError("No checkpoint directory defined in constructor or .env!\n"
                                "Define in .env using CHECKPOINT_DIR=/PATH/TO/CHECKPOINTS")
-        self.checkpoint_dir = all_args[2]
+        self.checkpoint_dir = os.path.join(all_args[2], '.mnemonic-checkpoints')
 
         self.config_dir = all_args[4]
 
