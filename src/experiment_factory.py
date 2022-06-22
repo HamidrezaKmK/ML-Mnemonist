@@ -71,12 +71,17 @@ class ExperimentRunnerFactory:
             os.mkdir(experiment_path)
         return experiment_path
 
-    def create(self, cfg_dir: str, experiment_name: Optional[str] = None, verbose: int = 0,
-               cache_token: Optional[str] = None) -> ExperimentRunner:
+    def create(self, experiment_name: Optional[str] = None, verbose: int = 0,
+               cfg_dir: Optional[str] = None, cache_token: Optional[str] = None) -> ExperimentRunner:
 
         experiment_path = self._get_experiment_path(experiment_name)
 
-        cfg_path = os.path.join(self.config_dir, cfg_dir) if self.config_dir is not None else None
+        cfg_path = None
+        if cfg_dir is not None:
+            if self.config_dir is not None:
+                cfg_path = os.path.join(self.config_dir, cfg_dir)
+            else:
+                cfg_path = cfg_dir
 
         self.runner = ExperimentRunner(experiment_dir=experiment_path,
                                        checkpoint_dir=self.checkpoint_dir, verbose=verbose,
