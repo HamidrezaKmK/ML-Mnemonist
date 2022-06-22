@@ -31,6 +31,7 @@ class ExperimentRunner:
                  cache_token: Optional[str] = None, cfg_path: str = None,
                  cfg_builder: Optional[Callable[[], ConfigurationNode]] = None) -> None:
         if cfg_path is not None and cfg_builder is not None:
+            print("Building ... ")
             self.cfg_path = cfg_path
             self.cfg = cfg_builder().merge_from_file(self.cfg_path)
 

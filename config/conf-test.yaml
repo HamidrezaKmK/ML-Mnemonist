@@ -1,0 +1,15 @@
+DATASET:
+  TRAIN_NAME: '/content/sample_data/california_housing_train.csv'
+  TEST_NAME: '/content/sample_data/california_housing_test.csv'
+
+SOLVER:
+  LR: 0.0001
+  OPTIMIZER_TYPE: 'adam'
+  DEVICE: 'cpu'
+  METHOD: 'mlp-method'
+
+MODEL:
+  HYPER_PARAMETERS:
+    IN_FEATURES: 8
+    H1: 100
+    H2: 10
