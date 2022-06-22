@@ -4,6 +4,7 @@ import os
 import shutil
 from typing import Optional, Callable, Any, Dict
 
+from yacs.config import CfgNode as ConfigurationNode
 from src.processing_pipeline import Pipeline
 from src.runner_cache import RunnerCache
 
@@ -26,17 +27,19 @@ class ExperimentRunner:
     file. That way, many of the configurations will be preset to the values in the .env.
     """
 
-    def __init__(self, data_dir: str, cfg_path: str, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
-                 cache_token: Optional[str] = None) -> None:
-        self.data_dir = data_dir
-        self.cfg_path = cfg_path
-        self.cfg = combine_cfgs(cfg_path)
+    def __init__(self, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
+                 cache_token: Optional[str] = None, cfg_path: str = None,
+                 cfg_builder: Optional[Callable[[], ConfigurationNode]] = None) -> None:
+        if cfg_path is not None and cfg_builder is not None:
+            self.cfg_path = cfg_path
+            self.cfg = cfg_builder().merge_from_file(self.cfg_path)
+
         self.verbose = verbose
 
         self.experiment_dir = experiment_dir
         self.checkpoint_dir = checkpoint_dir
 
-        self.outputs: Dict[str, str] = {}
+        self._outputs: Dict[str, str] = {}
 
         self._implemented_run: Optional[Callable[[ExperimentRunner, ...], Any]] = None
         self.recurring_pipeline = Pipeline()
@@ -79,7 +82,7 @@ class ExperimentRunner:
         self._implemented_run = run
 
     def ADD_OUTPUT(self, file_dir: str, description: str):
-        self.outputs[file_dir] = description
+        self._outputs[file_dir] = description
 
     def run(self, *args, **kwargs):
         """
@@ -93,10 +96,15 @@ class ExperimentRunner:
         self.recurring_pipeline.run(keep=True, verbose=self.verbose, runner=self)
         self.CACHE._load_cache()
         ret = self._implemented_run(self, *args, **kwargs)
-        name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
-        self.cfg.dump(
-            stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
-        shutil.copyfile(self.cfg_path, os.path.join(self.experiment_dir, f'{name}-input.yaml'))
+
+        # Save configurations
+        if self.cfg is not None:
+            name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
+            self.cfg.dump(
+                stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
+            shutil.copyfile(self.cfg_path, os.path.join(self.experiment_dir, f'{name}-input.yaml'))
+
+        # Save files
         with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
-            f.writelines([f'{x}:{self.outputs[x]}' for x in self.outputs.keys()])
+            f.writelines([f'{x}:{self._outputs[x]}' for x in self._outputs.keys()])
         return ret

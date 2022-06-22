@@ -9,7 +9,6 @@ from src.experiment_runner import ExperimentRunner
 from yacs.config import CfgNode as ConfigurationNode
 
 
-
 class ExperimentRunnerFactory:
     """
     An experiment runner factory that creates experiment runners and customizes them.
@@ -23,24 +22,44 @@ class ExperimentRunnerFactory:
     - implement_run: This function
     """
 
-    def __init__(self):
+    def __init__(self,
+                 experiment_dir: Optional[str] = None,
+                 checkpoint_dir: Optional[str] = None,
+                 config_dir: Optional[str] = None,
+                 config_default_builder: Optional[Callable[[], ConfigurationNode]] = None):
         """
         Loads data from .env and fills up the following:
-        - DATA_DIR=The directory containing all the data
         - EXPERIMENT_DIR=The directory containing the experiments
         - CHECKPOINT_DIR=Directory containing all the checkpoints
         - CONFIG_DIR=directory containing all the .yaml files
         """
         self.runner: ExperimentRunner
+        self.cfg_builder = config_default_builder
 
         load_dotenv(find_dotenv(), verbose=True)  # Load .env
 
-        self.data_dir = os.path.abspath(os.getenv('DATA_DIR'))
-        self.experiment_dir = os.path.abspath(os.getenv('EXPERIMENT_DIR'))
-        self.checkpoint_dir = os.path.abspath(os.getenv('CHECKPOINT_DIR'))
-        self.config_dir = os.path.abspath(os.getenv('CONFIG_DIR'))
+        all_args = [experiment_dir, 'EXPERIMENT_DIR',
+                    checkpoint_dir, 'CHECKPOINT_DIR',
+                    config_dir, 'CONFIG_DIR']
+        for i in range(0, len(all_args), 2):
+            if all_args[i] is None:
+                all_args[i] = os.getenv(all_args[i + 1])
+        if all_args[0] is None:
+            raise RuntimeError("No experiment directory defined in constructor or .env!\n"
+                               "Define in .env using EXPERIMENT_DIR=/PATH/TO/DIR")
+        self.experiment_dir = all_args[0]
+        if all_args[2] is None:
+            raise RuntimeError("No checkpoint directory defined in constructor or .env!\n"
+                               "Define in .env using CHECKPOINT_DIR=/PATH/TO/CHECKPOINTS")
+        self.checkpoint_dir = all_args[2]
 
-    def _get_experiment_path(self, experiment_name: Optional[str] = None):
+        self.config_dir = all_args[4]
+
+    def _get_experiment_path(self, experiment_name: Optional[str]):
+        """
+        Get the full directory of the experiment, if experiment_name is not specified
+        then come up with the currently unavailable name!
+        """
         # setup experiment name
         root_experiments_path = self.experiment_dir
         exp_name = experiment_name
@@ -58,12 +77,12 @@ class ExperimentRunnerFactory:
                cache_token: Optional[str] = None) -> ExperimentRunner:
 
         experiment_path = self._get_experiment_path(experiment_name)
-        # setup cfg
-        cfg_path = os.path.join(self.config_dir, cfg_dir)
-        self.runner = ExperimentRunner(data_dir=self.data_dir,
-                                       cfg_path=cfg_path, experiment_dir=experiment_path,
+
+        cfg_path = os.path.join(self.config_dir, cfg_dir) if self.config_dir is not None else None
+
+        self.runner = ExperimentRunner(experiment_dir=experiment_path,
                                        checkpoint_dir=self.checkpoint_dir, verbose=verbose,
-                                       cache_token=cache_token)
+                                       cache_token=cache_token, cfg_path=cfg_path, cfg_builder=self.cfg_builder)
 
         return self.runner
 
