@@ -1,6 +1,6 @@
 DATASET:
-  TRAIN_NAME: '/content/sample_data/california_housing_train.csv'
-  TEST_NAME: '/content/sample_data/california_housing_test.csv'
+  TRAIN_NAME: 'california_housing_train.csv'
+  TEST_NAME: 'california_housing_test.csv'
 
 SOLVER:
   LR: 0.0001
