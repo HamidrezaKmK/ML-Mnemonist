@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Optional, Callable
 
 from dotenv import load_dotenv, find_dotenv
@@ -28,20 +29,20 @@ class ExperimentRunnerFactory:
                  config_default_builder: Optional[Callable[[], ConfigurationNode]] = None):
         """
         Loads data from .env and fills up the following:
-        - EXPERIMENT_DIR=The directory containing the experiments
-        - CHECKPOINT_DIR=Directory containing all the checkpoints
-        - CONFIG_DIR=directory containing all the .yaml files
-        - SECRET_ROOT_DIR=secret prefix used for secret paths
+        - MLM_EXPERIMENT_DIR=The directory containing the experiments
+        - MLM_CHECKPOINT_DIR=Directory containing all the checkpoints
+        - MLM_CONFIG_DIR=directory containing all the .yaml files
+        - MLM_SECRET_ROOT_DIR=secret prefix used for secret paths
         """
         self.runner: ExperimentRunner
         self.cfg_builder = config_default_builder
 
         load_dotenv(find_dotenv(), verbose=True)  # Load .env
 
-        all_args = [experiment_dir, 'EXPERIMENT_DIR',
-                    checkpoint_dir, 'CHECKPOINT_DIR',
-                    config_dir, 'CONFIG_DIR',
-                    secret_dir, 'SECRET_ROOT_DIR']
+        all_args = [experiment_dir, 'MLM_EXPERIMENT_DIR',
+                    checkpoint_dir, 'MLM_CHECKPOINT_DIR',
+                    config_dir, 'MLM_CONFIG_DIR',
+                    secret_dir, 'MLM_SECRET_ROOT_DIR']
         for i in range(0, len(all_args), 2):
             if all_args[i] is None:
                 all_args[i] = os.getenv(all_args[i + 1])
@@ -60,7 +61,11 @@ class ExperimentRunnerFactory:
             os.mkdir(self.checkpoint_dir)
 
         self.config_dir = all_args[4]
+        if self.config_dir is None:
+            warnings.warn("CONF_DIR not defined!")
         self.secret_root = all_args[6]
+        if self.secret_root is None:
+            warnings.warn("SECRET_ROOT_DIR not defined!")
 
     def _get_experiment_path(self, experiment_name: Optional[str]):
         """

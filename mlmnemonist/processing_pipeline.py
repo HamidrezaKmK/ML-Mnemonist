@@ -1,4 +1,3 @@
-
 from collections import Callable
 from typing import List, Optional, Union
 
@@ -17,11 +16,22 @@ class Pipeline:
         return [x.__name__ for x in self._all_functions].__str__()
 
     def _find_index_in_pipeline(self, func: Callable_Runner_With_Optional) -> Optional[int]:
+        """
+        Find the index of function func in the pipeline
+        """
         for i in range(len(self._all_functions)):
             f = self._all_functions[i]
             if f.__name__ == func.__name__:
                 return i
         return None
+
+    @property
+    def function_count(self):
+        """
+        :return:
+        The number of functions in the pipeline
+        """
+        return len(self._all_functions)
 
     def update_function(self, func: Callable_Runner_With_Optional) -> None:
         """

@@ -3,17 +3,46 @@ import os
 import torch
 import torch.nn as nn
 from typing import Optional, Union, Dict, List, Any
-import random
 import pickle
+
+MAX_CACHE_SIZE: int = 10
+
+
+def _get_all_tokens(directory: str) -> List[str]:
+    all_names = set()
+    for f in os.listdir(directory):
+        name = f.split('-tok')[0] + '-tok'
+        all_names.add(name)
+    return list(all_names)
+
+
+def _get_new_token(directory: str) -> str:
+    all_tokens = _get_all_tokens(directory)
+    mex = 0
+    while f'{mex}-tok' in all_tokens:
+        mex += 1
+    return f'{mex}-tok'
 
 
 class RunnerCache:
 
     def __init__(self, directory: str, token: Optional[str] = None):
-        self._cache_token = token if token is not None else f'tok-{random.randint(1, 300)}'
+        all_tokens = _get_all_tokens(directory)
+        if token not in all_tokens and len(all_tokens) >= MAX_CACHE_SIZE:
+            raise Exception("Maximum cache limit reached!\n"
+                            f"Remove files from {directory}")
+        self._cache_token = token if token is not None else _get_new_token(directory)
         self._cached_primitives: Dict[str, Any] = {}
         self._cached_models: Dict[str, nn.Module] = {}
         self.directory = directory
+        # Create the logfile
+        log_dir = os.path.join(self.directory, f'{self._cache_token}-logs')
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+
+    @property
+    def LOGS_DIR(self) -> str:
+        return os.path.join(self.directory, f'{self._cache_token}-logs')
 
     @property
     def TOKEN(self) -> str:
@@ -38,8 +67,13 @@ class RunnerCache:
         # Remove everything from the checkpoint
         # directory that starts with the runner prefix
         for f in os.listdir(self.directory):
+            real_dir = os.path.join(self.directory, f)
             if f.startswith(self._cache_token):
-                os.remove(os.path.join(self.directory, f))
+                if os.path.isfile(real_dir):
+                    os.remove(os.path.join(self.directory, f))
+                elif f == f'{self._cache_token}-logs':
+                    for f2 in os.listdir(real_dir):
+                        os.remove(os.path.join(real_dir, f2))
 
         # Clear up the cached_primitives
         self._cached_primitives = {}

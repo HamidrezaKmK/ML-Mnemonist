@@ -96,6 +96,8 @@ class ExperimentRunner:
         """
         Run all the functions specified for preprocessing in an orderly fasion
         """
+        if self.preprocessing_pipeline.function_count == 0 and self.verbose > 0:
+            print("No functions in the preprocessing pipeline!")
         self.preprocessing_pipeline.run(keep=keep, verbose=self.verbose, runner=self)
 
     def implement_run(self, run: Callable[[ExperimentRunner, ...], Any]) -> None:
@@ -116,18 +118,32 @@ class ExperimentRunner:
         """
         if self._implemented_run is None:
             raise NotImplementedError("The run function is not implemented yet!")
+
+        if self.verbose > 0 and self.recurring_pipeline.function_count == 0:
+            print("No functions in the recurring pipeline ...")
         self.recurring_pipeline.run(keep=True, verbose=self.verbose, runner=self)
+
         self.CACHE._load_cache()
         ret = self._implemented_run(self, *args, **kwargs)
 
-        # Save configurations
-        if self.cfg is not None:
-            name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
-            self.cfg.dump(
-                stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
-            shutil.copyfile(self.cfg_path, os.path.join(self.experiment_dir, f'{name}-input.yaml'))
-
         # Save files
+        if self.verbose > 0:
+            print("[DONE] running over!")
+            print("\t - saving files ...")
+
         with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
-            f.writelines([f'{x}:{self._outputs[x]}' for x in self._outputs.keys()])
+            all_lines = ['This file contains a description on the files available in the experiment']
+            # Save configurations
+            if self.cfg is not None:
+                name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
+                self.cfg.dump(
+                    stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
+                shutil.copyfile(self.cfg_path, os.path.join(self.experiment_dir, f'{name}-input.yaml'))
+                all_lines.append(f"{name}-output.yaml : Contains the configurations after ending the runner.")
+                all_lines.append(f"{name}-input.yaml : Contains the configurations when starting the runner."
+                                 f" You can feed the same file again as configurations and gain the same results.")
+            # Save file descriptions in readme.txt
+            all_lines.append("Output files and their descriptions:")
+            all_lines += [f'{x} : {self._outputs[x]}' for x in self._outputs.keys()]
+            f.writelines(all_lines)
         return ret

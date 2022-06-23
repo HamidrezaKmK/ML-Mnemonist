@@ -1,6 +1,12 @@
 Change Log
 =================
 
+0.0.4 (23.6.2022)
+-----------------
+- Add more logs for verbose runners
+- Add CACHE.LOGS_DIR to save logs such as tensorboard
+- Add maximum cache limit that can be manipulated using mlm.MAX_CACHE_SIZE
+
 0.0.3 (23.6.2022)
 -----------------
 - README updated
