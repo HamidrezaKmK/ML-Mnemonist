@@ -93,7 +93,7 @@ class RunnerCache:
     def _load_cache(self):
         for dir in os.listdir(self.directory):
             real_dir = os.path.join(self.directory, dir)
-            if dir == f'{self._cache_token}-runner-checkpoint_primitives.pkl':
+            if dir == f'{self._cache_token}-runner_checkpoint_primitives.pkl':
                 # Handle loading the primitives
                 with open(real_dir, 'rb') as f:
                     self._cached_primitives = pickle.load(f)
