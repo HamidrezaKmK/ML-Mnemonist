@@ -2,7 +2,8 @@ from setuptools import setup, find_packages
 
 classfiers = [
     'Development Status :: In production :: Pre-release',
-    'Programming language :: Python :: 3.8'
+    'Programming language :: Python :: 3.8',
+    'Operating System :: OS independent'
 ]
 
 setup(
@@ -12,7 +13,7 @@ setup(
                 'on your ML operations with the ability to smartly cache your models'
                 'and retrieve it even when your session crashes.',
     long_description=open('README.md').read() + '\n\n' + open('CHANGELOG.txt').read(),
-    url='',
+    url='https://github.com/HamidrezaKmK/ML-Mnemonist',
     author='Hamidreza Kamkari',
     author_email='hamidrezakamkari@gmail.com',
     license='MIT',

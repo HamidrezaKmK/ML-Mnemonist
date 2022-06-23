@@ -5,8 +5,8 @@ import shutil
 from typing import Optional, Callable, Any, Dict
 
 from yacs.config import CfgNode as ConfigurationNode
-from src.processing_pipeline import Pipeline
-from src.runner_cache import RunnerCache
+from mlmnemonist.processing_pipeline import Pipeline
+from mlmnemonist.runner_cache import RunnerCache
 
 
 class ExperimentRunner:

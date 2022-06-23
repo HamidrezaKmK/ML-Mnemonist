@@ -3,7 +3,7 @@ from typing import Optional, Callable
 
 from dotenv import load_dotenv, find_dotenv
 
-from src.experiment_runner import ExperimentRunner
+from mlmnemonist.experiment_runner import ExperimentRunner
 from yacs.config import CfgNode as ConfigurationNode
 
 
@@ -94,5 +94,3 @@ class ExperimentRunnerFactory:
 
         return self.runner
 
-
-FACTORY = ExperimentRunnerFactory()
