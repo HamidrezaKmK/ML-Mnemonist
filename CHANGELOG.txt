@@ -1,6 +1,10 @@
 Change Log
 =================
 
+0.0.2 (23.6.2022)
+-----------------
+- Bug removal of some initial problems with the setup
+
 0.0.1 (23.6.2022)
 -----------------
 - First release
