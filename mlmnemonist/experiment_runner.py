@@ -29,11 +29,16 @@ class ExperimentRunner:
 
     def __init__(self, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
                  cache_token: Optional[str] = None, cfg_path: str = None,
-                 cfg_builder: Optional[Callable[[], ConfigurationNode]] = None) -> None:
+                 cfg_builder: Optional[Callable[[], ConfigurationNode]] = None,
+                 secret_root: Optional[str] = None) -> None:
+        self._secret_root = secret_root
+
+        self._has_cfg = False
         if cfg_path is not None and cfg_builder is not None:
             self.cfg_path = cfg_path
             self.cfg = cfg_builder()
             self.cfg.merge_from_file(self.cfg_path)
+            self._has_cfg = True
 
         self.verbose = verbose
 
@@ -49,9 +54,23 @@ class ExperimentRunner:
         self.CACHE = RunnerCache(directory=checkpoint_dir, token=cache_token)
 
     def __str__(self) -> str:
+        """
+        return a string containing the type of runner
+        their cache token,
+        configuration (if available)
+        the prepcrocessing pipeline
+        the recurring pipeline
+        and the run function (if implemented)
+        """
         ret = f'Experiment runner of type: {type(self)}\n'
+
         ret += f'\t - cache token: {self.CACHE.TOKEN}\n'
-        ret += f'\t - configurations at: {self.cfg_path}\n'
+
+        if self._has_cfg:
+            ret += f'\t - configurations at: {self.cfg_path}\n'
+        else:
+            ret += f'\t - no configuration file specified!'
+
         ret += f'\t - preprocessings functions {self.preprocessing_pipeline}\n'
         ret += f'\t - recurring pipeline {self.recurring_pipeline}\n'
         if self._implemented_run is None:
@@ -59,6 +78,9 @@ class ExperimentRunner:
         else:
             ret += f'\t - Run function: {self._implemented_run.__name__}\n'
         return ret
+
+    def reveal_true_path(self, path: str) -> str:
+        return os.path.join(self._secret_root, path)
 
     def reload_cfg(self) -> None:
         """

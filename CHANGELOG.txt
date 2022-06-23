@@ -1,6 +1,12 @@
 Change Log
 =================
 
+0.0.3 (23.6.2022)
+-----------------
+- README updated
+- full support without configurations
+- secret_root added to factory and reveal_true_path
+
 0.0.2 (23.6.2022)
 -----------------
 - Bug removal of some initial problems with the setup

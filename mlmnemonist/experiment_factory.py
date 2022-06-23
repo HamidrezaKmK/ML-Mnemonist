@@ -24,12 +24,14 @@ class ExperimentRunnerFactory:
                  experiment_dir: Optional[str] = None,
                  checkpoint_dir: Optional[str] = None,
                  config_dir: Optional[str] = None,
+                 secret_dir: Optional[str] = None,
                  config_default_builder: Optional[Callable[[], ConfigurationNode]] = None):
         """
         Loads data from .env and fills up the following:
         - EXPERIMENT_DIR=The directory containing the experiments
         - CHECKPOINT_DIR=Directory containing all the checkpoints
         - CONFIG_DIR=directory containing all the .yaml files
+        - SECRET_ROOT_DIR=secret prefix used for secret paths
         """
         self.runner: ExperimentRunner
         self.cfg_builder = config_default_builder
@@ -38,7 +40,8 @@ class ExperimentRunnerFactory:
 
         all_args = [experiment_dir, 'EXPERIMENT_DIR',
                     checkpoint_dir, 'CHECKPOINT_DIR',
-                    config_dir, 'CONFIG_DIR']
+                    config_dir, 'CONFIG_DIR',
+                    secret_dir, 'SECRET_ROOT_DIR']
         for i in range(0, len(all_args), 2):
             if all_args[i] is None:
                 all_args[i] = os.getenv(all_args[i + 1])
@@ -57,6 +60,7 @@ class ExperimentRunnerFactory:
             os.mkdir(self.checkpoint_dir)
 
         self.config_dir = all_args[4]
+        self.secret_root = all_args[6]
 
     def _get_experiment_path(self, experiment_name: Optional[str]):
         """
@@ -90,7 +94,8 @@ class ExperimentRunnerFactory:
 
         self.runner = ExperimentRunner(experiment_dir=experiment_path,
                                        checkpoint_dir=self.checkpoint_dir, verbose=verbose,
-                                       cache_token=cache_token, cfg_path=cfg_path, cfg_builder=self.cfg_builder)
+                                       cache_token=cache_token, cfg_path=cfg_path, cfg_builder=self.cfg_builder,
+                                       secret_root=self.secret_root)
 
         return self.runner
 
