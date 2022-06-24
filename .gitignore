@@ -5,3 +5,5 @@ mlmnemonist.egg-info
 .ipynb_checkpoints
 
 .mnemonic-checkpoints
+
+mnemonic-experiments

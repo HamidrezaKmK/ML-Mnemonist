@@ -1,6 +1,13 @@
 Change Log
 =================
 
+0.0.5 (24.6.2022)
+-----------------
+- Add reload_cfg before each call of runner.run
+- Add reload_cfg before each call of runner.preprocess
+- Add runner.export_logs() method to get a zip file from all
+  logfiles in the experiment directory
+
 0.0.4 (23.6.2022)
 -----------------
 - Add more logs for verbose runners

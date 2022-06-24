@@ -92,12 +92,22 @@ class ExperimentRunner:
         """
         self.cfg.merge_from_file(self.cfg_path)
 
+    def export_logs(self) -> str:
+        ret = os.path.join(self.experiment_dir, 'logs-export')
+        shutil.make_archive(ret,
+                            'zip',
+                            self.CACHE.LOGS_DIR)
+        if self.verbose > 0:
+            print(f"Files being archived in {ret}.zip ...")
+        return ret + '.zip'
+
     def preprocess(self, keep=False) -> None:
         """
         Run all the functions specified for preprocessing in an orderly fasion
         """
         if self.preprocessing_pipeline.function_count == 0 and self.verbose > 0:
             print("No functions in the preprocessing pipeline!")
+        self.reload_cfg()
         self.preprocessing_pipeline.run(keep=keep, verbose=self.verbose, runner=self)
 
     def implement_run(self, run: Callable[[ExperimentRunner, ...], Any]) -> None:
@@ -121,6 +131,7 @@ class ExperimentRunner:
 
         if self.verbose > 0 and self.recurring_pipeline.function_count == 0:
             print("No functions in the recurring pipeline ...")
+        self.reload_cfg()
         self.recurring_pipeline.run(keep=True, verbose=self.verbose, runner=self)
 
         self.CACHE._load_cache()
