@@ -1,6 +1,12 @@
 Change Log
 =================
 
+0.0.6 (29.6.2022)
+-----------------
+- Bug removal in CACHE.RESET() where directories are included in the logs
+- Runner pipeline cloning option added
+- preprocess does keep the pipeline by default
+
 0.0.5 (24.6.2022)
 -----------------
 - Add reload_cfg before each call of runner.run
