@@ -1,4 +1,6 @@
 import os
+import shutil
+import warnings
 
 import torch
 import torch.nn as nn
@@ -72,8 +74,7 @@ class RunnerCache:
                 if os.path.isfile(real_dir):
                     os.remove(os.path.join(self.directory, f))
                 elif f == f'{self._cache_token}-logs':
-                    for f2 in os.listdir(real_dir):
-                        os.remove(os.path.join(real_dir, f2))
+                    shutil.rmtree(real_dir)
 
         # Clear up the cached_primitives
         self._cached_primitives = {}
@@ -83,14 +84,17 @@ class RunnerCache:
         """
         Save the whole cache into the disk.
         """
-        # Save the primitives
-        with open(os.path.join(self.directory, f'{self._cache_token}-runner_checkpoint_primitives.pkl'), 'wb') as f:
-            pickle.dump(self._cached_primitives, f)
+        try:
+            # Save the primitives
+            with open(os.path.join(self.directory, f'{self._cache_token}-runner_checkpoint_primitives.pkl'), 'wb') as f:
+                pickle.dump(self._cached_primitives, f)
 
-        # Save all of the current models
-        for name in self._cached_models.keys():
-            torch.save(self._cached_models[name].state_dict(),
-                       os.path.join(self.directory, f'{self._cache_token}-model.{name}.pth'))
+            # Save all of the current models
+            for name in self._cached_models.keys():
+                torch.save(self._cached_models[name].state_dict(),
+                           os.path.join(self.directory, f'{self._cache_token}-model.{name}.pth'))
+        except KeyboardInterrupt as e:
+            warnings.warn("No keyboard interrupt allowed in between cache saving ...")
 
     def SET_IFN(self, name: str, value: Any):
         if name not in self._cached_primitives:

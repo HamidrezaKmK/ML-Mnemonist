@@ -79,6 +79,19 @@ class ExperimentRunner:
             ret += f'\t - Run function: {self._implemented_run.__name__}\n'
         return ret
 
+    def clone_pipelines(self, other: ExperimentRunner) -> None:
+        """
+        :param other:
+        Another experiment runner with some pipelines
+
+        This function clones everything in the other experiment runner's pipeline for faster
+        use
+        """
+        # TODO: Check for side-effects
+        self._implemented_run = other._implemented_run
+        self.recurring_pipeline = other.recurring_pipeline
+        self.preprocessing_pipeline = other.preprocessing_pipeline
+
     def reveal_true_path(self, path: str) -> str:
         return os.path.join(self._secret_root, path)
 
