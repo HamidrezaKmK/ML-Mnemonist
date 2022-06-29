@@ -114,7 +114,7 @@ class ExperimentRunner:
             print(f"Files being archived in {ret}.zip ...")
         return ret + '.zip'
 
-    def preprocess(self, keep=False) -> None:
+    def preprocess(self, keep=True) -> None:
         """
         Run all the functions specified for preprocessing in an orderly fasion
         """
