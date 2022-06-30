@@ -1,6 +1,12 @@
 Change Log
 =================
 
+0.0.7 (1.7.2022)
+-----------------
+- Add expand_cfg for hyperparameter tuning
+- Add gridsearch for hyperparameter tuning
+- Change cache token scheme
+
 0.0.6 (29.6.2022)
 -----------------
 - Bug removal in CACHE.RESET() where directories are included in the logs

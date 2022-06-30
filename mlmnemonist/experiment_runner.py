@@ -64,7 +64,7 @@ class ExperimentRunner:
         """
         ret = f'Experiment runner of type: {type(self)}\n'
 
-        ret += f'\t - cache token: {self.CACHE.TOKEN}\n'
+        ret += f'\t - cache token: {self.CACHE.TOKEN.split("-MLM-CACHE-TOK")[0]}\n'
 
         if self._has_cfg:
             ret += f'\t - configurations at: {self.cfg_path}\n'
