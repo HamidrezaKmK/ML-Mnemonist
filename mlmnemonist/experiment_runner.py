@@ -147,7 +147,7 @@ class ExperimentRunner:
         self.reload_cfg()
         self.recurring_pipeline.run(keep=True, verbose=self.verbose, runner=self)
 
-        self.CACHE._load_cache()
+        self.CACHE.LOAD()
         ret = self._implemented_run(self, *args, **kwargs)
 
         # Save files

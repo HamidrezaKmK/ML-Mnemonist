@@ -7,7 +7,7 @@ __C = ConfigurationNode()
 # Dummy dataset variables only for testing
 __C.DATASET = ConfigurationNode()
 __C.DATASET.TRAIN_NAME = 'not-specified!'
-__C.DATASET.TEST_NAME = 'not-specifie!'
+__C.DATASET.TEST_NAME = 'not-specified!'
 
 __C.SOLVER = ConfigurationNode()
 __C.SOLVER.LR = 0.0

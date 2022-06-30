@@ -1,4 +1,5 @@
 import os
+import shutil
 import warnings
 from typing import Optional, Callable
 
@@ -84,6 +85,14 @@ class ExperimentRunnerFactory:
         if not os.path.exists(experiment_path):
             os.mkdir(experiment_path)
         return experiment_path
+
+    def clear_caches(self):
+        for f in os.listdir(self.checkpoint_dir):
+            real_dir = os.path.join(self.checkpoint_dir, f)
+            if os.path.isfile(real_dir):
+                os.remove(real_dir)
+            else:
+                shutil.rmtree(real_dir)
 
     def create(self, experiment_name: Optional[str] = None, verbose: int = 0,
                cfg_dir: Optional[str] = None, cache_token: Optional[str] = None) -> ExperimentRunner:
