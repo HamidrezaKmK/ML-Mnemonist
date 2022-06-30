@@ -13,7 +13,9 @@ MAX_CACHE_SIZE: int = 10
 def _get_all_tokens(directory: str) -> List[str]:
     all_names = set()
     for f in os.listdir(directory):
-        name = f.split('-tok')[0] + '-tok'
+        if '-MLM-CACHE-TOK' not in f:
+            continue
+        name = f.split('-MLM-CACHE-TOK')[0] + '-MLM-CACHE-TOK'
         all_names.add(name)
     return list(all_names)
 
@@ -21,19 +23,21 @@ def _get_all_tokens(directory: str) -> List[str]:
 def _get_new_token(directory: str) -> str:
     all_tokens = _get_all_tokens(directory)
     mex = 0
-    while f'{mex}-tok' in all_tokens:
+    while f'{mex}' in all_tokens:
         mex += 1
-    return f'{mex}-tok'
+    return f'{mex}'
 
 
 class RunnerCache:
 
     def __init__(self, directory: str, token: Optional[str] = None):
         all_tokens = _get_all_tokens(directory)
+
         if token not in all_tokens and len(all_tokens) >= MAX_CACHE_SIZE:
             raise Exception("Maximum cache limit reached!\n"
                             f"Remove files from {directory}")
         self._cache_token = token if token is not None else _get_new_token(directory)
+        self._cache_token += '-MLM-CACHE-TOK'
         self._cached_primitives: Dict[str, Any] = {}
         self._cached_models: Dict[str, nn.Module] = {}
         self.directory = directory
@@ -128,7 +132,7 @@ class RunnerCache:
             raise ModuleNotFoundError(f"model {name} not found!")
         return self._cached_models[name]
 
-    def _load_cache(self):
+    def LOAD(self):
         for dir in os.listdir(self.directory):
             real_dir = os.path.join(self.directory, dir)
             if dir == f'{self._cache_token}-runner_checkpoint_primitives.pkl':
