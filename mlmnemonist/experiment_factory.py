@@ -1,9 +1,12 @@
+import copy
 import os
+import pickle
 import shutil
 import warnings
 from typing import Optional, Callable
-
+from datetime import date
 from dotenv import load_dotenv, find_dotenv
+from mlmnemonist.runner_cache import RunnerCache
 
 from mlmnemonist.experiment_runner import ExperimentRunner
 from yacs.config import CfgNode as ConfigurationNode
@@ -23,11 +26,11 @@ class ExperimentRunnerFactory:
     """
 
     def __init__(self,
+                 cfg_base: Optional[ConfigurationNode] = None,
                  experiment_dir: Optional[str] = None,
                  checkpoint_dir: Optional[str] = None,
                  config_dir: Optional[str] = None,
-                 secret_dir: Optional[str] = None,
-                 config_default_builder: Optional[Callable[[], ConfigurationNode]] = None):
+                 secret_dir: Optional[str] = None):
         """
         Loads data from .env and fills up the following:
         - MLM_EXPERIMENT_DIR=The directory containing the experiments
@@ -35,8 +38,7 @@ class ExperimentRunnerFactory:
         - MLM_CONFIG_DIR=directory containing all the .yaml files
         - MLM_SECRET_ROOT_DIR=secret prefix used for secret paths
         """
-        self.runner: ExperimentRunner
-        self.cfg_builder = config_default_builder
+        self.cfg_base = copy.deepcopy(cfg_base)
 
         load_dotenv(find_dotenv(), verbose=True)  # Load .env
 
@@ -68,25 +70,38 @@ class ExperimentRunnerFactory:
         if self.secret_root is None:
             warnings.warn("MLM_SECRET_ROOT_DIR not defined!")
 
-    def _get_experiment_path(self, experiment_name: Optional[str]):
+    def _get_new_experiment_path(self, experiment_name: Optional[str]):
         """
         Get the full directory of the experiment, if experiment_name is not specified
         then come up with the currently unavailable name!
         """
         # setup experiment name
         root_experiments_path = self.experiment_dir
-        exp_name = experiment_name
-        if exp_name is None:
-            mex = 0
-            while os.path.exists(os.path.join(root_experiments_path, f'exp_{mex}')):
-                mex += 1
-            exp_name = f'exp_{mex}'
+        middle_name = 'exp' if experiment_name is None else experiment_name
+
+        mex = 0
+        while os.path.exists(os.path.join(root_experiments_path, f'{date.today()}-{middle_name}-{mex}')):
+            mex += 1
+        exp_name = f'{date.today()}-{middle_name}-{mex}'
+
         experiment_path = os.path.join(root_experiments_path, exp_name)
         if not os.path.exists(experiment_path):
             os.mkdir(experiment_path)
         return experiment_path
 
-    def clear_caches(self):
+    def clear_caches(self, prompt=True):
+        """
+        :param prompt:
+        Prompt the user for decision
+
+        Deletes everything in the checkpoints directory
+        """
+        while prompt:
+            resp = input(f"This will delete everything in {self.checkpoint_dir}! Are you sure? [y/n] ")
+            if resp == 'n':
+                return
+            elif resp == 'y':
+                break
         for f in os.listdir(self.checkpoint_dir):
             real_dir = os.path.join(self.checkpoint_dir, f)
             if os.path.isfile(real_dir):
@@ -94,10 +109,36 @@ class ExperimentRunnerFactory:
             else:
                 shutil.rmtree(real_dir)
 
-    def create(self, experiment_name: Optional[str] = None, verbose: int = 0,
-               cfg_dir: Optional[str] = None, cache_token: Optional[str] = None) -> ExperimentRunner:
+    def retrieve(self, cache_token: str):
+        """
+        Based on the cache token available at the checkpoints directory
+        it retrieves a runner with all its cached data using cache_token
+        """
 
-        experiment_path = self._get_experiment_path(experiment_name)
+        cache = RunnerCache(directory=self.checkpoint_dir,
+                            token=f'{cache_token}-META')
+        cache.LOAD()
+        runner_meta = cache.SET_IFN('RUNNER_CONSTRUCTOR_META', None)
+        if runner_meta is None:
+            raise FileNotFoundError(f"No runner with cache token {cache_token} found in {self.checkpoint_dir}")
+
+        return ExperimentRunner(experiment_dir=runner_meta['experiment_dir'],
+                                checkpoint_dir=self.checkpoint_dir,
+                                verbose=runner_meta['verbose'],
+                                cache_token=cache_token,
+                                cfg_path=runner_meta['cfg_path'],
+                                cfg_base=copy.deepcopy(self.cfg_base),
+                                secret_root=self.secret_root)
+
+    def create(self, verbose: int = 0,
+               description: str = 'description not specified!',
+               experiment_name: Optional[str] = None,
+               cfg_dir: Optional[str] = None,
+               cache_token: Optional[str] = None) -> ExperimentRunner:
+
+        experiment_path = self._get_new_experiment_path(experiment_name)
+        with open(os.path.join(experiment_path, 'DESCRIPTION.txt'), 'w') as f:
+            f.write(description)
 
         cfg_path = None
         if cfg_dir is not None:
@@ -106,10 +147,8 @@ class ExperimentRunnerFactory:
             else:
                 cfg_path = cfg_dir
 
-        self.runner = ExperimentRunner(experiment_dir=experiment_path,
-                                       checkpoint_dir=self.checkpoint_dir, verbose=verbose,
-                                       cache_token=cache_token, cfg_path=cfg_path, cfg_builder=self.cfg_builder,
-                                       secret_root=self.secret_root)
-
-        return self.runner
-
+        return ExperimentRunner(experiment_dir=experiment_path,
+                                checkpoint_dir=self.checkpoint_dir, verbose=verbose,
+                                cache_token=cache_token, cfg_path=cfg_path,
+                                cfg_base=copy.deepcopy(self.cfg_base),
+                                secret_root=self.secret_root)

@@ -1,0 +1,116 @@
+DESCRIPTION: >
+  This experiment contains multiple configurations used for hyperparameter tuning
+
+MODEL_HAS_CHECKPOINTS: FALSE
+
+DATASET:
+  PATH_DATA_RAW:
+    COMBO: 'processed/combo'
+    INFO: 'processed/info'
+  COMBO_TABLE_NAME: 'ALMANAC2017_Subset.csv'
+  HAS_STUDY_SOURCES: TRUE
+  STUDY_SOURCES: ['ALMANAC']
+  USE_SCREENING_SAMPLE_RATIO: TRUE
+  SCREENING_SAMPLE_RATIO: 1.0
+
+  DRUG:
+    GUIDE: 'index'
+    USE_DRUG_EMBEDDINGS: FALSE
+    DETAIL_LEVEL: 0
+    INCLUDE_MACCS: FALSE
+    USE_SMILES: TRUE
+    ATOM_FEATURES: 78
+
+  CELL:
+    USE_EXPRESSION: FALSE
+    INCLUDE_CODE: TRUE
+    INCLUDE_CNV: FALSE
+    INCLUDE_CRISPR: FALSE
+    INCLUDE_PROTEOMICS: FALSE
+    DETAIL_LEVEL: 'D1'
+
+SOLVING_METHOD: 'DeepDDR'
+
+DEEP_DDR:
+
+  DATA_LOADER:
+    BATCH_SIZE: 2000
+
+  SOLVER:
+    MLM_BRANCH_1:
+      USE_PRETRAINED_WEIGHTS: FALSE
+      DEVICE: 'cuda'
+      N_EPOCHS: 30
+      LOSS: 'MSE'
+      OPTIMIZER:
+        TYPE: 'Adam'
+        LR: 1e-3
+    MLM_BRANCH_2:
+      USE_PRETRAINED_WEIGHTS: FALSE
+      DEVICE: 'cuda'
+      N_EPOCHS: 70
+      LOSS: 'MSE'
+      OPTIMIZER:
+        TYPE: 'Adam'
+        LR: 1e-4
+    MLM_BRANCH_3:
+      USE_PRETRAINED_WEIGHTS: FALSE
+      DEVICE: 'cuda'
+      N_EPOCHS: 100
+      LOSS: 'MSE'
+      OPTIMIZER:
+        TYPE: 'Adam'
+        LR: 5e-5
+
+  MODEL:
+    TYPE: 'deep-ddr-v2'
+    HYPER_PARAMETERS:
+      DROPOUT: 0.2
+      DRUG_EMBEDDER:
+        TYPE: 'gnn-no-global-pooling'
+        HYPER_PARAMETERS:
+          MLM_BRANCH_1:
+            GNN_TYPE: 'GCN'
+            IN_FEATURES: 78
+            D_LAYERS:
+              MLM_BRANCH_1: (1024, 156)
+              MLM_BRANCH_2: (1024, 512, 156)
+            ACTIVATION: 'relu'
+          MLM_BRANCH_2:
+            GNN_TYPE: 'GAT'
+            IN_FEATURES: 78
+            OUT_FEATURES: 256
+            N_HEADS:
+              MLM_BRANCH_1: 2
+              MLM_BRANCH_2: 4
+              MLM_BRANCH_3: 8
+            ACTIVATION: 'elu'
+      CELL_EMBEDDER:
+        TYPE: 'mlp-cell-embedder'
+        HYPER_PARAMETERS:
+          DROPOUT: 0.2
+          OUT_FEATURES: 256
+          IN_FEATURES: 19
+          H1: 2048
+          H2: 512
+      FUSION:
+        TYPE: 'mlp-concat-fusion-no-compression'
+        HYPER_PARAMETERS:
+          DROPOUT: 0.2
+          CONC_IN_FEATURES: 27
+          HIDDEN_UNITS:
+            MLM_BRANCH_1: (1024, 256, 128)
+            MLM_BRANCH_2: (2048, 512, 256)
+            MLM_BRANCH_3: (512, 256)
+      INTEGRATION:
+        TYPE: 'multi-head-attention-method'
+        HYPER_PARAMETERS:
+          N_HEADS:
+            MLM_BRANCH_1: 2
+            MLM_BRANCH_2: 4
+            MLM_BRANCH_3: 8
+          H: 200
+
+TRAIN_TEST_SPLIT:
+  FOLD_INDICES_FILENAME: 'CV_Folds_Subset.pkl'
+  SPLIT_DIR: 'processed/train_test_split'

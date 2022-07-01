@@ -1,5 +1,6 @@
 import copy
 import os
+import sys
 
 from dotenv import load_dotenv, find_dotenv
 from yacs.config import CfgNode as ConfigurationNode
@@ -7,6 +8,13 @@ import re
 
 
 def _is_branch_type(cfg: ConfigurationNode):
+    """
+    :param cfg:
+    A ConfigurationNode
+    :return:
+    returns true if the children are of type MLM_BRANCH_i
+    returns false otherwise
+    """
     branch_count = 0
     for k in cfg.keys():
         if re.match(r'MLM_BRANCH_\d+', k):
@@ -29,9 +37,9 @@ def _merge_cfg(cfg1: ConfigurationNode, cfg2: ConfigurationNode, key_list=None) 
     if _is_branch_type(cfg2):
         leaf = False
         if not isinstance(cfg1, ConfigurationNode):
-            cfg1 = ConfigurationNode()
             leaf = True
         base_cfg = copy.deepcopy(cfg1)
+        cfg1 = ConfigurationNode()
         for k in cfg2.keys():
             if leaf:
                 cfg1[k] = copy.deepcopy(cfg2[k])
@@ -50,16 +58,16 @@ def _merge_cfg(cfg1: ConfigurationNode, cfg2: ConfigurationNode, key_list=None) 
     return cfg1
 
 
-def _expand_cfg(cfg: ConfigurationNode, current_path=None):
-    if current_path is None:
-        current_path = []
+def _expand_cfg(cfg: ConfigurationNode, key_list=None):
+    if key_list is None:
+        key_list = []
 
     if not isinstance(cfg, ConfigurationNode):
-        return [[copy.deepcopy(cfg), current_path]]
+        return [[copy.deepcopy(cfg), []]]
     elif not _is_branch_type(cfg):
         old_variants = []
         for k in cfg.keys():
-            new_variants = _expand_cfg(cfg[k])
+            new_variants = _expand_cfg(cfg[k], key_list + [k])
             if len(old_variants) == 0:
                 for cfg_, code in new_variants:
                     new_cfg = ConfigurationNode()
@@ -71,16 +79,19 @@ def _expand_cfg(cfg: ConfigurationNode, current_path=None):
                     for cfg_old, code_old in old_variants:
                         cfg_combined = copy.deepcopy(cfg_old)
                         cfg_combined[k] = copy.deepcopy(cfg_new)
-                        accumulate.append([cfg_combined, code_old + code_new])
+                        accumulate.append([cfg_combined, copy.deepcopy(code_old) + copy.deepcopy(code_new)])
                 old_variants = accumulate
         return old_variants
     else:
         variants = []
         for i, k in enumerate(cfg.keys()):
             if isinstance(cfg[k], ConfigurationNode):
-                variants += _expand_cfg(cfg[k], current_path + [i])
+                new_variants = _expand_cfg(cfg[k], key_list+[k])
+                for var in new_variants:
+                    var[1] += [i]
+                variants += new_variants
             else:
-                variants.append([copy.deepcopy(cfg[k]), current_path + [i]])
+                variants.append([copy.deepcopy(cfg[k]), [i]])
         return variants
 
 
@@ -93,6 +104,7 @@ def expand_cfg(cfg_base, cfg_dir: str, save_directory: str):
         other_cfg = cfg_base.load_cfg(f)
     grid_cfg = copy.deepcopy(cfg_base)
     grid_cfg = _merge_cfg(grid_cfg, other_cfg)
+
     variants = _expand_cfg(grid_cfg)
     if not os.path.exists(save_directory):
         sv_dir = os.getcwd()
@@ -115,46 +127,3 @@ def expand_cfg(cfg_base, cfg_dir: str, save_directory: str):
         ret[name] = pth
         cfg.dump(stream=open(pth, 'w'))
     return ret
-
-# def test1():
-#     cfg = ConfigurationNode()
-#     cfg.A = ConfigurationNode()
-#     cfg.B = ConfigurationNode()
-#     cfg.C = ConfigurationNode()
-#
-#     cfg.A.A = ConfigurationNode()
-#     cfg.A.A.MLM_BRANCH_1 = 100
-#     cfg.A.A.MLM_BRANCH_2 = 200
-#     cfg.A.A.MLM_BRANCH_3 = 300
-#
-#     cfg.A.B = ConfigurationNode()
-#     cfg.A.B.MLM_BRANCH_1 = 1000
-#     cfg.A.B.MLM_BRANCH_2 = 3000
-#
-#     cfg.B.MLM_BRANCH_1 = ConfigurationNode()
-#     cfg.B.MLM_BRANCH_2 = ConfigurationNode()
-#     cfg.B.MLM_BRANCH_1.A = ConfigurationNode()
-#     cfg.B.MLM_BRANCH_1.A.MLM_BRANCH_1 = 111
-#     cfg.B.MLM_BRANCH_1.A.MLM_BRANCH_2 = 222
-#     cfg.B.MLM_BRANCH_2.T = ConfigurationNode()
-#     cfg.B.MLM_BRANCH_2.T.MLM_BRANCH_1 = 111
-#     cfg.B.MLM_BRANCH_2.T.MLM_BRANCH_2 = 222
-#
-#     cfg.C.MLM_BRANCH_1 = 11
-#     cfg.C.MLM_BRANCH_2 = 13
-#
-#     for cfg_i, code in _expand_cfg(cfg):
-#         print(f"-- {code} --")
-#         print(cfg_i)
-#         print("---")
-#
-#
-# def test2():
-#     sys.setrecursionlimit(10000)
-#
-#     mp = expand_cfg(get_cfg_defaults(), cfg_dir='conf-test-branches.yaml', save_directory='config/new-stuff')
-#     print(mp)
-#
-#
-# if __name__ == '__main__':
-#     test2()

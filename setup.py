@@ -8,7 +8,7 @@ classfiers = [
 
 setup(
     name='mlmnemonist',
-    version='0.0.7.1',
+    version='0.0.9',
     description='A light-weight framework to store the progress you made'
                 'on your ML operations with the ability to smartly cache your models'
                 'and retrieve it even when your session crashes.',

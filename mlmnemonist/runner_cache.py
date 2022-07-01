@@ -52,7 +52,7 @@ class RunnerCache:
 
     @property
     def TOKEN(self) -> str:
-        return self._cache_token
+        return self._cache_token.split('-MLM-CACHE-TOK')[0]
 
     def RESET(self, prompt=True) -> None:
         """

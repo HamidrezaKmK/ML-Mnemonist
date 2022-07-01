@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import os
 import shutil
 from typing import Optional, Callable, Any, Dict
@@ -27,18 +28,25 @@ class ExperimentRunner:
     file. That way, many of the configurations will be preset to the values in the .env.
     """
 
+    def add_config(self,
+                   cfg_base: Optional[ConfigurationNode] = None,
+                   cfg_path: Optional[str] = None):
+        self._has_cfg = False
+        self.cfg_path = None
+        if cfg_base is not None:
+            self._has_cfg = True
+            self.cfg = copy.deepcopy(cfg_base)
+            if cfg_path is not None:
+                self.cfg_path = cfg_path
+                self.cfg.merge_from_file(self.cfg_path)
+
     def __init__(self, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
-                 cache_token: Optional[str] = None, cfg_path: str = None,
-                 cfg_builder: Optional[Callable[[], ConfigurationNode]] = None,
+                 cache_token: Optional[str] = None, cfg_path: Optional[str] = None,
+                 cfg_base: Optional[ConfigurationNode] = None,
                  secret_root: Optional[str] = None) -> None:
         self._secret_root = secret_root
 
-        self._has_cfg = False
-        if cfg_path is not None and cfg_builder is not None:
-            self.cfg_path = cfg_path
-            self.cfg = cfg_builder()
-            self.cfg.merge_from_file(self.cfg_path)
-            self._has_cfg = True
+        self.add_config(cfg_base, cfg_path)
 
         self.verbose = verbose
 
@@ -52,6 +60,14 @@ class ExperimentRunner:
         self.preprocessing_pipeline = Pipeline()
 
         self.CACHE = RunnerCache(directory=checkpoint_dir, token=cache_token)
+        meta_data = {
+            'experiment_dir': self.experiment_dir,
+            'verbose': self.verbose,
+            'cfg_path': self.cfg_path
+        }
+        meta_cache = RunnerCache(directory=checkpoint_dir, token=f'{self.CACHE.TOKEN}-META')
+        meta_cache.SET('RUNNER_CONSTRUCTOR_META', meta_data)
+        meta_cache.SAVE()
 
     def __str__(self) -> str:
         """
@@ -62,9 +78,8 @@ class ExperimentRunner:
         the recurring pipeline
         and the run function (if implemented)
         """
-        ret = f'Experiment runner of type: {type(self)}\n'
-
-        ret += f'\t - cache token: {self.CACHE.TOKEN.split("-MLM-CACHE-TOK")[0]}\n'
+        ret = f'Runner at {self.experiment_dir}\n'
+        ret += f'\t - cache token: {self.CACHE.TOKEN}\n'
 
         if self._has_cfg:
             ret += f'\t - configurations at: {self.cfg_path}\n'
@@ -103,7 +118,8 @@ class ExperimentRunner:
         need to reload the experiment runner and you can simply change the hyperparameters in
         the yaml file and reload.
         """
-        self.cfg.merge_from_file(self.cfg_path)
+        if self._has_cfg and self.cfg_path is not None:
+            self.cfg.merge_from_file(self.cfg_path)
 
     def export_logs(self) -> str:
         ret = os.path.join(self.experiment_dir, 'logs-export')
@@ -158,7 +174,7 @@ class ExperimentRunner:
         with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
             all_lines = ['This file contains a description on the files available in the experiment']
             # Save configurations
-            if self.cfg is not None:
+            if self._has_cfg and self.cfg is not None:
                 name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
                 self.cfg.dump(
                     stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
