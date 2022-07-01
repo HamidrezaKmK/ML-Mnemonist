@@ -130,20 +130,19 @@ def _run_grid_search(runner: ExperimentRunner,
                 cache.SET('score_dict', score_dict)
                 cache.SAVE()
 
+                with open(os.path.join(all_cfg_dir, 'seen_scores.json'), 'w') as f:
+                    json.dump(score_dict, f, indent=4)
+
                 if last_score is None or score > last_score:
                     last_score = score
                     found_more = True
                     curr = adjacent_code
                     break
-
-
-
         if not found_more:
             break
 
-    with open(os.path.join(all_cfg_dir, 'seen_scores.json'), 'w') as f:
-        json.dump(score_dict, f, indent=4)
-
+    if verbose > 0:
+        print(f"Results saved in {os.path.join(all_cfg_dir, 'seen_scores.json')}!")
     return cache
 
 
