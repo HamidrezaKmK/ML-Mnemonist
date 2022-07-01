@@ -110,6 +110,10 @@ class ExperimentRunner:
     def reveal_true_path(self, path: str) -> str:
         return os.path.join(self._secret_root, path)
 
+    def merge_cfg(self, cfg_path: str) -> None:
+        self.cfg_path = cfg_path
+        self.reload_cfg()
+
     def reload_cfg(self) -> None:
         """
         Run this module whenever you have made a change to the cfg but you do not wish
