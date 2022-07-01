@@ -43,7 +43,8 @@ class ExperimentRunner:
     def __init__(self, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
                  cache_token: Optional[str] = None, cfg_path: Optional[str] = None,
                  cfg_base: Optional[ConfigurationNode] = None,
-                 secret_root: Optional[str] = None) -> None:
+                 secret_root: Optional[str] = None,
+                 meta_cache: Optional[RunnerCache] = None) -> None:
         self._secret_root = secret_root
 
         self.add_config(cfg_base, cfg_path)
@@ -56,18 +57,13 @@ class ExperimentRunner:
         self._outputs: Dict[str, str] = {}
 
         self._implemented_run: Optional[Callable[[ExperimentRunner, ...], Any]] = None
-        self.recurring_pipeline = Pipeline()
-        self.preprocessing_pipeline = Pipeline()
+        self._META_CACHE = meta_cache
+        self.recurring_pipeline = Pipeline(self._META_CACHE,
+                                           'RUNNER_RECURRING_PIPELINE_META')
+        self.preprocessing_pipeline = Pipeline(self._META_CACHE,
+                                               'RUNNER_PREP_PIPELINE_META')
 
         self.CACHE = RunnerCache(directory=checkpoint_dir, token=cache_token)
-        meta_data = {
-            'experiment_dir': self.experiment_dir,
-            'verbose': self.verbose,
-            'cfg_path': self.cfg_path
-        }
-        meta_cache = RunnerCache(directory=checkpoint_dir, token=f'{self.CACHE.TOKEN}-META')
-        meta_cache.SET('RUNNER_CONSTRUCTOR_META', meta_data)
-        meta_cache.SAVE()
 
     def __str__(self) -> str:
         """
@@ -93,19 +89,6 @@ class ExperimentRunner:
         else:
             ret += f'\t - Run function: {self._implemented_run.__name__}\n'
         return ret
-
-    def clone_pipelines(self, other: ExperimentRunner) -> None:
-        """
-        :param other:
-        Another experiment runner with some pipelines
-
-        This function clones everything in the other experiment runner's pipeline for faster
-        use
-        """
-        # TODO: Check for side-effects
-        self._implemented_run = other._implemented_run
-        self.recurring_pipeline = other.recurring_pipeline
-        self.preprocessing_pipeline = other.preprocessing_pipeline
 
     def reveal_true_path(self, path: str) -> str:
         return os.path.join(self._secret_root, path)
@@ -148,6 +131,8 @@ class ExperimentRunner:
         Use this function to
         """
         self._implemented_run = run
+        self._META_CACHE.SET('RUNNER_RUN_META', self._implemented_run)
+        self._META_CACHE.SAVE()
 
     def ADD_OUTPUT(self, file_dir: str, description: str):
         self._outputs[file_dir] = description
@@ -178,7 +163,7 @@ class ExperimentRunner:
         with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
             all_lines = ['This file contains a description on the files available in the experiment']
             # Save configurations
-            if self._has_cfg and self.cfg is not None:
+            if self._has_cfg and self.cfg is not None and self.cfg_path is not None:
                 name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
                 self.cfg.dump(
                     stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
