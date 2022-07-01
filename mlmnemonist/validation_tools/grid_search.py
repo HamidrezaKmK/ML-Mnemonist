@@ -108,7 +108,6 @@ def _run_grid_search(runner: ExperimentRunner,
         for adjacent_code in _get_adjacent_codes(curr, '.'.join(all_codes)):
             if adjacent_code not in marks:
                 runner.verbose = max(0, verbose - 1)
-                runner.CACHE.RESET(prompt=False)
                 runner.cfg_path = cfg_dict[adjacent_code]
 
                 if verbose > 0:
@@ -117,6 +116,7 @@ def _run_grid_search(runner: ExperimentRunner,
                 if with_preprocess:
                     runner.preprocess()
                 score = runner.run(*args, **kwargs)
+                runner.CACHE.RESET(prompt=False)
                 if verbose > 0:
                     print(score)
 
