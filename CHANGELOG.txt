@@ -1,6 +1,15 @@
 Change Log
 =================
 
+0.0.9 (1.7.2022)
+-----------------
+- Grid search bug removal
+- Implement two types of grid search: one using a palette config and another using a directory
+  containing all the config files
+- Retrieve added to ExperimentRunnerFactory
+- Updated naming scheme for experiments such that each experiment has a description file and
+  their name contains the date of today
+
 0.0.8 (1.7.2022)
 -----------------
 - Bug removal in validation tools
