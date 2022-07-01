@@ -52,6 +52,11 @@ class ExperimentRunner:
         self.verbose = verbose
 
         self.experiment_dir = experiment_dir
+        if not os.path.exists(self.experiment_dir):
+            raise FileNotFoundError(
+                f"File {self.experiment_dir} not found! Maybe you have deleted the experiment ...\n"
+                f"Make sure to delete everything in checkpoint directory {checkpoint_dir} too before re-running")
+
         self.checkpoint_dir = checkpoint_dir
 
         self._outputs: Dict[str, str] = {}
@@ -161,18 +166,18 @@ class ExperimentRunner:
             print("\t - saving files ...")
 
         with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
-            all_lines = ['This file contains a description on the files available in the experiment']
+            all_lines = ['This file contains a description on the files available in the experiment\n']
             # Save configurations
             if self._has_cfg and self.cfg is not None and self.cfg_path is not None:
                 name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
                 self.cfg.dump(
                     stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
                 shutil.copyfile(self.cfg_path, os.path.join(self.experiment_dir, f'{name}-input.yaml'))
-                all_lines.append(f"{name}-output.yaml : Contains the configurations after ending the runner.")
-                all_lines.append(f"{name}-input.yaml : Contains the configurations when starting the runner."
-                                 f" You can feed the same file again as configurations and gain the same results.")
+                all_lines.append(f"\t{name}-output.yaml : Contains the configurations after ending the runner.\n")
+                all_lines.append(f"\t{name}-input.yaml : Contains the configurations when starting the runner.\n"
+                                 f"\t You can feed the same file again as configurations and gain the same results.\n")
             # Save file descriptions in readme.txt
-            all_lines.append("Output files and their descriptions:")
-            all_lines += [f'{x} : {self._outputs[x]}' for x in self._outputs.keys()]
+            all_lines.append("Output files and their descriptions:\n")
+            all_lines += [f'\t{x} : {self._outputs[x]}\n' for x in self._outputs.keys()]
             f.writelines(all_lines)
         return ret

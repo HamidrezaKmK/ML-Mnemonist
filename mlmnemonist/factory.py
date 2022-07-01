@@ -233,7 +233,7 @@ class RunnerFactory:
         hyper_experiment_path = _get_new_experiment_path(self.hyper_experiment_dir, experiment_name)
         with open(os.path.join(hyper_experiment_path, 'DESCRIPTION.txt'), 'w') as f:
             f.write(description)
-
+        cfg_palette_path = os.path.join(self.config_dir, cfg_palette_path)
         ret = HyperExperimentRunner(cfg_palette_dir=cfg_palette_path,
                                     cfg_base=cfg_base,
                                     hyper_experiment_path=hyper_experiment_path,

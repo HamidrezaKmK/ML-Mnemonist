@@ -25,6 +25,10 @@ class HyperExperimentRunner:
         self.cfg_base = cfg_base
         self._secret_root = secret_root
         self.hyper_experiment_path = hyper_experiment_path
+        if not os.path.exists(self.hyper_experiment_path):
+            raise FileNotFoundError(
+                f"File {self.hyper_experiment_path} not found! Maybe you have deleted the experiment ...\n"
+                f"Make sure to delete everything in checkpoint directory {checkpoint_dir} too before re-running")
         self.all_cfgs_dir = os.path.join(self.hyper_experiment_path, 'all-cfgs')
         if not os.path.exists(self.all_cfgs_dir):
             os.mkdir(self.all_cfgs_dir)
