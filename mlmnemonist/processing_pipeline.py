@@ -1,6 +1,8 @@
 from collections import Callable
 from typing import List, Optional, Union
 
+from mlmnemonist.runner_cache import RunnerCache
+
 Callable_Runner_With_Optional = Callable
 
 
@@ -9,8 +11,13 @@ class Pipeline:
     This class contains a set of functions piped together.
     """
 
-    def __init__(self):
+    def __init__(self, cache: Optional[RunnerCache] = None, name_in_cache: Optional[str] = None):
         self._all_functions: List[Callable_Runner_With_Optional] = []
+        if cache is not None:
+            self._CACHE = cache
+            if name_in_cache is None:
+                raise Exception("Cache defined but no name for pipeline!")
+            self._name_in_cache = name_in_cache
 
     def __str__(self):
         return [x.__name__ for x in self._all_functions].__str__()
@@ -43,6 +50,8 @@ class Pipeline:
             self.add_function(func)
         else:
             self._all_functions[i] = func
+        self._CACHE.SET(self._name_in_cache, self._all_functions)
+        self._CACHE.SAVE()
 
     def insert_function(self, func: Callable_Runner_With_Optional, index: int) -> None:
         """
@@ -51,11 +60,15 @@ class Pipeline:
         if self._find_index_in_pipeline(func) is not None:
             raise Exception("Function is repeated!")
         self._all_functions.insert(index, func)
+        self._CACHE.SET(self._name_in_cache, self._all_functions)
+        self._CACHE.SAVE()
 
     def add_function(self, func: Callable_Runner_With_Optional) -> None:
         if self._find_index_in_pipeline(func) is not None:
             raise Exception("Function is repeated")
         self._all_functions.append(func)
+        self._CACHE.SET(self._name_in_cache, self._all_functions)
+        self._CACHE.SAVE()
 
     def remove_function(self, func: Callable_Runner_With_Optional) -> None:
         """
@@ -63,12 +76,16 @@ class Pipeline:
         """
         if self._find_index_in_pipeline(func) is not None:
             self._all_functions.remove(func)
+        self._CACHE.SET(self._name_in_cache, self._all_functions)
+        self._CACHE.SAVE()
 
     def clear_functions(self) -> None:
         """
         Clear the preprocessing pipeline
         """
         self._all_functions.clear()
+        self._CACHE.SET(self._name_in_cache, self._all_functions)
+        self._CACHE.SAVE()
 
     def run(self, keep: bool, verbose: int, runner, *args, **kwargs) -> None:
         """

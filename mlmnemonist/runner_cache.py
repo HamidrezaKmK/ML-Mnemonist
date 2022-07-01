@@ -6,8 +6,11 @@ import torch
 import torch.nn as nn
 from typing import Optional, Union, Dict, List, Any
 import pickle
+from yacs.config import CfgNode as ConfigurationNode
+import yacs
+import yacs.config
 
-MAX_CACHE_SIZE: int = 10
+MAX_CACHE_SIZE: int = 20
 
 
 def _get_all_tokens(directory: str) -> List[str]:
@@ -38,8 +41,11 @@ class RunnerCache:
                             f"Remove files from {directory}")
         self._cache_token = token if token is not None else _get_new_token(directory)
         self._cache_token += '-MLM-CACHE-TOK'
+
         self._cached_primitives: Dict[str, Any] = {}
         self._cached_models: Dict[str, nn.Module] = {}
+        self._cached_configs: Dict[str, ConfigurationNode] = {}
+
         self.directory = directory
         # Create the logfile
         log_dir = os.path.join(self.directory, f'{self._cache_token}-logs')
@@ -97,24 +103,43 @@ class RunnerCache:
             for name in self._cached_models.keys():
                 torch.save(self._cached_models[name].state_dict(),
                            os.path.join(self.directory, f'{self._cache_token}-model.{name}.pth'))
+            # Save all the configurations
+            for name in self._cached_configs.keys():
+                cfg = self._cached_configs[name]
+                cfg.dump(stream=open(os.path.join(self.directory, f'{self._cache_token}-cfg.{name}.yaml'), 'w'))
+
         except KeyboardInterrupt as e:
             warnings.warn("No keyboard interrupt allowed in between cache saving ...")
 
-    def SET_IFN(self, name: str, value: Any):
+    def SET_IFN(self, name: str, value: Any) -> Any:
         if name not in self._cached_primitives:
             self._cached_primitives[name] = value
         return self._cached_primitives[name]
 
-    def SET(self, name: str, value: Any):
+    def SET(self, name: str, value: Any) -> Any:
         self._cached_primitives[name] = value
         return self._cached_primitives[name]
 
-    def GET(self, name: str):
+    def GET(self, name: str) -> Any:
         if name not in self._cached_primitives:
             raise ModuleNotFoundError(f"primitive with name {name} not found!")
         return self._cached_primitives[name]
 
-    def SET_IFN_M(self, name: str, model: nn.Module):
+    def SET_CFG(self, name: str, value: ConfigurationNode):
+        self._cached_configs[name] = value
+        return self._cached_configs
+
+    def SET_IFN_CFG(self, name: str, value: Optional[ConfigurationNode]) -> Optional[ConfigurationNode]:
+        if name not in self._cached_configs:
+            self._cached_configs[name] = value
+        return self._cached_configs[name]
+
+    def GET_CFG(self, name: str):
+        if name not in self._cached_configs:
+            raise Exception(f"Config with name {name} not found!")
+        return self._cached_configs[name]
+
+    def SET_IFN_M(self, name: str, model: Optional[nn.Module]) -> Optional[nn.Module]:
         if '.' in name:
             raise NameError(f"Name should not contain dots {name}")
         if name not in self._cached_models:
@@ -145,3 +170,6 @@ class RunnerCache:
                 if model_name not in self._cached_models:
                     print(f"Model with name {model_name} has not been initialized in preprocess!")
                 self._cached_models[model_name].load_state_dict(torch.load(real_dir))
+            elif dir.startswith(f'{self._cache_token}-cfg'):
+                cfg_name = real_dir.split('.')[-2]
+                self._cached_configs[cfg_name] = yacs.config.load_cfg(open(real_dir, 'r'))

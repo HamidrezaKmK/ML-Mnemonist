@@ -96,6 +96,7 @@ def _expand_cfg(cfg: ConfigurationNode, key_list=None):
 
 
 def expand_cfg(cfg_base, cfg_dir: str, save_directory: str):
+
     load_dotenv(find_dotenv(), verbose=True)  # Load .env
     cfg_dir = os.path.join(os.getenv('MLM_CONFIG_DIR'), cfg_dir)
     save_directory = os.path.join(os.getenv('MLM_EXPERIMENT_DIR'), save_directory)

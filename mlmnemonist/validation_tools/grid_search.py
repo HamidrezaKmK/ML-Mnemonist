@@ -10,6 +10,8 @@ from yacs.config import CfgNode as ConfigurationNode
 
 import functools
 
+from mlmnemonist.validation_tools.utils import get_all_codes
+
 GRID_SEARCH_CACHING = 500
 
 
@@ -21,13 +23,6 @@ def _rev_convert(code: List[int]) -> str:
     return '-'.join([str(x) for x in code])
 
 
-def _get_all_codes(parent_directory: str) -> Dict[str, str]:
-    all_codes = {}
-    for f in os.listdir(parent_directory):
-        if f.split('.')[-1] == 'yaml':
-            all_codes[f.split('-MLM-')[0]] = os.path.join(parent_directory, f)
-
-    return all_codes
 
 
 def _get_adjacent_based_on_list(curr_list: List[int], guide: List[int], curr_index: int = 0) -> List[List[int]]:
@@ -95,7 +90,7 @@ def _run_grid_search(runner: ExperimentRunner,
     runner.add_config(cfg_base=cfg_base)
 
     # Calculate the value for all iterations
-    cfg_dict = _get_all_codes(all_cfg_dir)
+    cfg_dict = get_all_codes(all_cfg_dir)
     all_codes = list(cfg_dict.keys())
     curr = cache.SET_IFN('current_code', all_codes[0])
     marks = cache.SET_IFN('marks', set(list([curr])))
