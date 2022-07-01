@@ -1,6 +1,10 @@
 Change Log
 =================
 
+0.0.11 (1.7.2022)
+-----------------
+- Grid search can now continue on the runner's last interrupt
+
 0.0.10 (1.7.2022)
 -----------------
 - With preprocess added to gridsearch
