@@ -49,24 +49,24 @@ class ExperimentRunnerFactory:
                 all_args[i] = os.getenv(all_args[i + 1])
         if all_args[0] is None:
             raise RuntimeError("No experiment directory defined in constructor or .env!\n"
-                               "Define in .env using EXPERIMENT_DIR=/PATH/TO/DIR")
+                               "Define in .env using MLM_EXPERIMENT_DIR=/PATH/TO/DIR")
         self.experiment_dir = os.path.join(all_args[0], 'mnemonic-experiments')
         if not os.path.exists(self.experiment_dir):
             os.mkdir(self.experiment_dir)
 
         if all_args[2] is None:
             raise RuntimeError("No checkpoint directory defined in constructor or .env!\n"
-                               "Define in .env using CHECKPOINT_DIR=/PATH/TO/CHECKPOINTS")
+                               "Define in .env using MLM_CHECKPOINT_DIR=/PATH/TO/CHECKPOINTS")
         self.checkpoint_dir = os.path.join(all_args[2], '.mnemonic-checkpoints')
         if not os.path.exists(self.checkpoint_dir):
             os.mkdir(self.checkpoint_dir)
 
         self.config_dir = all_args[4]
         if self.config_dir is None:
-            warnings.warn("CONF_DIR not defined!")
+            warnings.warn("MLM_CONFIG_DIR not defined!")
         self.secret_root = all_args[6]
         if self.secret_root is None:
-            warnings.warn("SECRET_ROOT_DIR not defined!")
+            warnings.warn("MLM_SECRET_ROOT_DIR not defined!")
 
     def _get_experiment_path(self, experiment_name: Optional[str]):
         """
