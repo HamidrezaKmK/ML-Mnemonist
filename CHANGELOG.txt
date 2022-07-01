@@ -1,6 +1,11 @@
 Change Log
 =================
 
+0.0.10 (1.7.2022)
+-----------------
+- With preprocess added to gridsearch
+- merge_cfg added to ExperimentRunner
+
 0.0.9 (1.7.2022)
 -----------------
 - Grid search bug removal
