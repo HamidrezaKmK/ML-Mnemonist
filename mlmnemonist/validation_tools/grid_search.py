@@ -88,6 +88,7 @@ def _run_grid_search(runner: ExperimentRunner,
                      verbose: int,
                      cfg_base: ConfigurationNode,
                      all_cfg_dir: str,
+                     with_preprocess: bool,
                      *args, **kwargs):
     cache.LOAD()
     # Add configurations
@@ -113,6 +114,8 @@ def _run_grid_search(runner: ExperimentRunner,
                 if verbose > 0:
                     print(f"Iteration no. [{iteration_i + 1}/{len(all_codes)}] "
                           f"-- Running {os.path.split(runner.cfg_path)[-1]}", end=' : ')
+                if with_preprocess:
+                    runner.preprocess()
                 score = runner.run(*args, **kwargs)
                 if verbose > 0:
                     print(score)
@@ -150,6 +153,7 @@ def grid_search_from_palette(runner: ExperimentRunner,
                              cfg_base: ConfigurationNode,
                              cfg_palette_dir: str,
                              save_directory: str,
+                             with_preprocess: bool = False,
                              *args, **kwargs
                              ):
     cfg_palette_dir = os.path.join(os.getenv('MLM_CONFIG_DIR'), cfg_palette_dir)
@@ -172,7 +176,7 @@ def grid_search_from_palette(runner: ExperimentRunner,
     cache.SET('directories_done', directories_done)
     cache.SAVE()
     all_cfg_dir = save_directory
-    _run_grid_search(runner, cache, verbose, cfg_base, all_cfg_dir, *args, **kwargs)
+    _run_grid_search(runner, cache, verbose, cfg_base, all_cfg_dir, with_preprocess, *args, **kwargs)
 
 
 def grid_search(runner: ExperimentRunner,
@@ -180,8 +184,9 @@ def grid_search(runner: ExperimentRunner,
                 verbose: int,
                 cfg_base: ConfigurationNode,
                 all_cfg_dir: str,
+                with_preprocess: bool = False,
                 *args, **kwargs):
     all_cfg_dir = os.path.join(os.getenv('MLM_EXPERIMENT_DIR'), all_cfg_dir)
     cache = RunnerCache(directory=all_cfg_dir, token=cache_token)
     cache.LOAD()
-    _run_grid_search(runner, cache, verbose, cfg_base, all_cfg_dir, *args, **kwargs)
+    _run_grid_search(runner, cache, verbose, cfg_base, all_cfg_dir, with_preprocess, *args, **kwargs)
