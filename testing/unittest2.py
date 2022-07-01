@@ -1,23 +1,32 @@
 import random
+import time
 
 from config.config_drug import get_cfg_defaults
-from mlmnemonist import ExperimentRunnerFactory, ExperimentRunner
+from mlmnemonist import RunnerFactory, ExperimentRunner
 from mlmnemonist.validation_tools import grid_search, grid_search_from_palette
 from testing.modeling.drug_combo import DEEP_DDR_REGISTRY
 
 
 def decoy_prep(runner: ExperimentRunner):
-    pass
+    if runner.verbose > 0:
+        print("Running preprocess!")
 
 
 def decoy_recurring(runner: ExperimentRunner):
-    pass
+    if runner.verbose > 0:
+        print("Running recurring!")
 
 
 def decoy_run(runner: ExperimentRunner):
-    print("Running!")
-    for i in range(10):
-        print(i)
+    iteration_i = runner.CACHE.SET_IFN('iteration_i', 0)
+    while iteration_i < 10:
+        if runner.verbose > 0:
+            print("running runner:", iteration_i)
+        time.sleep(0.5)
+        iteration_i += 1
+        runner.CACHE.SET('iteration_i', iteration_i)
+        runner.CACHE.SAVE()
+    return random.randint(0, 10)
 
 
 def config_based_run(runner: ExperimentRunner):
@@ -26,7 +35,7 @@ def config_based_run(runner: ExperimentRunner):
 
 
 if __name__ == '__main__':
-    factory = ExperimentRunnerFactory(cfg_base=get_cfg_defaults())
+    factory = RunnerFactory()
     try:
         runner = factory.retrieve('unittest2')
     except FileNotFoundError:
