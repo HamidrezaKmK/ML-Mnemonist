@@ -1,6 +1,13 @@
 Change Log
 =================
 
+0.0.12 (1.7.2022)
+-----------------
+- Biggest update yet!
+- Introduce HyperExperiments!
+- When retrieving using factory, the pipelines will also be handled
+- Caching system updated, META_DATA cache added
+
 0.0.11 (1.7.2022)
 -----------------
 - Grid search can now continue on the runner's last interrupt
