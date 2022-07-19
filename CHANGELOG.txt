@@ -1,32 +1,32 @@
 Change Log
-=================
+=============================================================================
 
 0.0.14 (19.7.2022)
------------------
+-----------------------------------------------------------------------------
 - Add exception handler to hyper experiments for conflicting configs
 
-0.0.13 (1.7.2022)
------------------
+0.0.13 (01.7.2022)
+------------------
 - Bug removal in configurations of the factory
 - Bug removal in readme
 
-0.0.12 (1.7.2022)
------------------
+0.0.12 (01.7.2022)
+------------------
 - Biggest update yet!
 - Introduce HyperExperiments!
 - When retrieving using factory, the pipelines will also be handled
 - Caching system updated, META_DATA cache added
 
-0.0.11 (1.7.2022)
------------------
+0.0.11 (01.7.2022)
+------------------
 - Grid search can now continue on the runner's last interrupt
 
-0.0.10 (1.7.2022)
------------------
+0.0.10 (01.7.2022)
+------------------
 - With preprocess added to gridsearch
 - merge_cfg added to ExperimentRunner
 
-0.0.9 (1.7.2022)
+0.0.9 (01.7.2022)
 -----------------
 - Grid search bug removal
 - Implement two types of grid search: one using a palette config and another using a directory
@@ -35,11 +35,11 @@ Change Log
 - Updated naming scheme for experiments such that each experiment has a description file and
   their name contains the date of today
 
-0.0.8 (1.7.2022)
+0.0.8 (01.7.2022)
 -----------------
 - Bug removal in validation tools
 
-0.0.7 (1.7.2022)
+0.0.7 (01.7.2022)
 -----------------
 - Add expand_cfg for hyperparameter tuning
 - Add gridsearch for hyperparameter tuning
