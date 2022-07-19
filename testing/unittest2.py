@@ -1,9 +1,9 @@
 import random
 import time
 
-from config.config_drug import get_cfg_defaults
 from mlmnemonist import RunnerFactory, ExperimentRunner
 from mlmnemonist.validation_tools import grid_search, grid_search_from_palette
+from testing.config.config import get_cfg_defaults
 from testing.modeling.drug_combo import DEEP_DDR_REGISTRY
 
 

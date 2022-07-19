@@ -99,6 +99,21 @@ class RunnerFactory:
         if self.secret_root is None:
             warnings.warn("MLM_SECRET_ROOT_DIR not defined!")
 
+    def delete_experiment(self, experiment_name: str):
+        shutil.rmtree(os.path.join(self.experiment_dir, experiment_name))
+
+    def delete_hyper_experiment(self, hyper_experiment_name: str):
+        shutil.rmtree(os.path.join(self.hyper_experiment_dir, hyper_experiment_name))
+
+    def delete_from_cache(self, cache_prefix: str):
+        for f in os.listdir(self.checkpoint_dir):
+            real_dir = os.path.join(self.checkpoint_dir, cache_prefix)
+            if f.startswith(cache_prefix):
+                if os.path.isfile(real_dir):
+                    os.remove(real_dir)
+                else:
+                    shutil.rmtree(real_dir)
+
     def clear_caches(self, prompt=True):
         """
         :param prompt:
@@ -112,12 +127,7 @@ class RunnerFactory:
                 return
             elif resp == 'y':
                 break
-        for f in os.listdir(self.checkpoint_dir):
-            real_dir = os.path.join(self.checkpoint_dir, f)
-            if os.path.isfile(real_dir):
-                os.remove(real_dir)
-            else:
-                shutil.rmtree(real_dir)
+        self.delete_from_cache('')
 
     def retrieve_experiment_runner(self, cache_token: str) -> ExperimentRunner:
         """

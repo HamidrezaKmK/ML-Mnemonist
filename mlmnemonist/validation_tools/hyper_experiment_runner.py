@@ -1,6 +1,7 @@
 import json
 import os
-from typing import List, Optional, Dict, Any
+import warnings
+from typing import List, Optional, Dict, Any, Tuple
 
 from mlmnemonist.runner_cache import RunnerCache
 from yacs.config import CfgNode as ConfigurationNode
@@ -43,7 +44,14 @@ class HyperExperimentRunner:
     def reveal_true_path(self, path: str) -> str:
         return os.path.join(self._secret_root, path)
 
-    def full_search(self, with_preprocess=False, *args, **kwargs) -> Dict[str, Any]:
+    def preprocess(self, keep: bool = True) -> None:
+        for runner in self.runners:
+            runner.preprocess(keep=keep)
+
+    def full_search(self,
+                    exception_list: Tuple = (),
+                    with_preprocess=False,
+                    *args, **kwargs) -> Dict[str, Any]:
         # Setup remaining codes
         self.CACHE.LOAD()
         all_codes = self.CACHE.SET_IFN('all_codes', None)
@@ -63,13 +71,21 @@ class HyperExperimentRunner:
         while iteration_i < len(all_codes):
             current_code = all_codes[iteration_i]
             self.runners[0].merge_cfg(codes_dict[current_code])
+            print("---")
+            print(self.runners[0].cfg)
+            print("---")
+
             self.runners[0].verbose = max(0, self.verbose - 1)
             if self.verbose > 0:
                 print(f"Iteration no. [{iteration_i + 1}/{len(all_codes)}] "
                       f"-- Running {os.path.split(self.runners[0].cfg_path)[-1]}")
-            if with_preprocess:
-                self.runners[0].preprocess()
-            score = self.runners[0].run(*args, **kwargs)
+            try:
+                if with_preprocess:
+                    self.runners[0].preprocess()
+                score = self.runners[0].run(*args, **kwargs)
+            except exception_list as e:
+                warnings.warn(f"Exception caught {e}")
+                score = None
             score_dict[codes_dict[current_code]] = score
             self.runners[0].CACHE.RESET(prompt=False)
             if self.verbose > 0:
