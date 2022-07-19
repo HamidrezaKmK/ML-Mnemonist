@@ -1,6 +1,10 @@
 Change Log
 =================
 
+0.0.14 (19.7.2022)
+-----------------
+- Add exception handler to hyper experiments for conflicting configs
+
 0.0.13 (1.7.2022)
 -----------------
 - Bug removal in configurations of the factory
