@@ -9,3 +9,5 @@ testing/.mnemonic-checkpoints
 testing/mnemonic-experiments
 
 testing/mnemonic-hyper-experiments
+
+.idea/*

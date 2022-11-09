@@ -40,6 +40,12 @@ class ExperimentRunner:
                 self.cfg_path = cfg_path
                 self.cfg.merge_from_file(self.cfg_path)
 
+    def get_cfg(self):
+        if self._has_cfg:
+            return self.cfg
+        else:
+            return None
+
     def __init__(self, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
                  cache_token: Optional[str] = None, cfg_path: Optional[str] = None,
                  cfg_base: Optional[ConfigurationNode] = None,

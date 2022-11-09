@@ -172,8 +172,13 @@ class RunnerFactory:
                                  experiment_name: Optional[str] = None,
                                  cfg_dir: Optional[str] = None,
                                  cache_token: Optional[str] = None) -> ExperimentRunner:
-
+        """
+        This function should be used to create
+        """
+        # Get a new path and assign it to the experiment, all logs will be stored in it
         experiment_path = _get_new_experiment_path(self.experiment_dir, experiment_name)
+
+        # Create a description file and store in the experiment's path
         with open(os.path.join(experiment_path, 'DESCRIPTION.txt'), 'w') as f:
             f.write(description)
 
@@ -184,9 +189,11 @@ class RunnerFactory:
             else:
                 cfg_path = cfg_dir
 
+        # Store the metadata used to construct the experiment runner
         meta_cache = RunnerCache(directory=self.checkpoint_dir, token=f'{cache_token}-META')
         meta_cache.LOAD()
 
+        # Construct the experiment runner itself and store it to return ultimately
         ret = ExperimentRunner(experiment_dir=experiment_path,
                                checkpoint_dir=self.checkpoint_dir, verbose=verbose,
                                cache_token=cache_token,
@@ -194,14 +201,16 @@ class RunnerFactory:
                                cfg_base=copy.deepcopy(cfg_base),
                                secret_root=self.secret_root,
                                meta_cache=meta_cache)
+
+        # Store the fields used for the constructor in the cache as a dictionary
         meta = {
             'experiment_dir': ret.experiment_dir,
             'verbose': ret.verbose,
             'cfg_path': ret.cfg_path
         }
-
         meta_cache.SET('RUNNER_CONSTRUCTOR_META', meta)
-        meta_cache.SET_CFG('RUNNER_CFG_BASE_META', ret.cfg)
+        # Store the configuration file itself
+        meta_cache.SET_CFG('RUNNER_CFG_BASE_META', ret.get_cfg())
         meta_cache.SAVE()
         return ret
 

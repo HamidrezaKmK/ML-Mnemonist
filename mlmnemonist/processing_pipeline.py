@@ -1,9 +1,6 @@
-from collections import Callable
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Callable
 
 from mlmnemonist.runner_cache import RunnerCache
-
-Callable_Runner_With_Optional = Callable
 
 
 class Pipeline:
@@ -12,7 +9,7 @@ class Pipeline:
     """
 
     def __init__(self, cache: Optional[RunnerCache] = None, name_in_cache: Optional[str] = None):
-        self._all_functions: List[Callable_Runner_With_Optional] = []
+        self._all_functions: List[Callable] = []
         if cache is not None:
             self._CACHE = cache
             if name_in_cache is None:
@@ -22,7 +19,7 @@ class Pipeline:
     def __str__(self):
         return [x.__name__ for x in self._all_functions].__str__()
 
-    def _find_index_in_pipeline(self, func: Callable_Runner_With_Optional) -> Optional[int]:
+    def _find_index_in_pipeline(self, func: Callable) -> Optional[int]:
         """
         Find the index of function func in the pipeline
         """
@@ -40,7 +37,7 @@ class Pipeline:
         """
         return len(self._all_functions)
 
-    def update_function(self, func: Callable_Runner_With_Optional) -> None:
+    def update_function(self, func: Callable) -> None:
         """
         This function updates the func if available and if not available
         then simply appends the function in the preprocessing pipeline
@@ -53,7 +50,7 @@ class Pipeline:
         self._CACHE.SET(self._name_in_cache, self._all_functions)
         self._CACHE.SAVE()
 
-    def insert_function(self, func: Callable_Runner_With_Optional, index: int) -> None:
+    def insert_function(self, func: Callable, index: int) -> None:
         """
         insert func at index 'index' of the pipeline 
         """
@@ -63,14 +60,14 @@ class Pipeline:
         self._CACHE.SET(self._name_in_cache, self._all_functions)
         self._CACHE.SAVE()
 
-    def add_function(self, func: Callable_Runner_With_Optional) -> None:
+    def add_function(self, func: Callable) -> None:
         if self._find_index_in_pipeline(func) is not None:
             raise Exception("Function is repeated")
         self._all_functions.append(func)
         self._CACHE.SET(self._name_in_cache, self._all_functions)
         self._CACHE.SAVE()
 
-    def remove_function(self, func: Callable_Runner_With_Optional) -> None:
+    def remove_function(self, func: Callable) -> None:
         """
         Removes the function from pipeline if it is currently available in the pipeline
         """
