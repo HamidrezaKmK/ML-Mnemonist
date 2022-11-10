@@ -28,33 +28,51 @@ class ExperimentRunner:
     file. That way, many of the configurations will be preset to the values in the .env.
     """
 
-    def add_config(self,
-                   cfg_base: Optional[ConfigurationNode] = None,
-                   cfg_path: Optional[str] = None):
-        self._has_cfg = False
-        self.cfg_path = None
-        if cfg_base is not None:
-            self._has_cfg = True
-            self.cfg = copy.deepcopy(cfg_base)
-            if cfg_path is not None:
-                self.cfg_path = cfg_path
-                self.cfg.merge_from_file(self.cfg_path)
+    def has_cfg(self):
+        return self.cfg is not None
+
+    def merge_config(self, cfg_path: str):
+        """
+        This function adds a config from a custom upon the configurations
+        one can also set a configuration basis here as well
+        """
+        self.cfg_path = cfg_path
+        self.cfg.merge_from_file(self.cfg_path)
+
+    def reset_config(self, cfg: ConfigurationNode):
+        """
+        Reset the entire cfg with another defined in the input here
+        """
+        self.cfg = copy.deepcopy(cfg)
 
     def get_cfg(self):
-        if self._has_cfg:
-            return self.cfg
-        else:
-            return None
+        return self.cfg
 
-    def __init__(self, experiment_dir: str, checkpoint_dir: str, verbose: int = 0,
-                 cache_token: Optional[str] = None, cfg_path: Optional[str] = None,
+    def __init__(self,
+                 experiment_name: str,
+                 experiment_dir: str,
+                 checkpoint_dir: str,
+                 verbose: int = 0,
+                 cache_token: Optional[str] = None,
+                 cfg_path: Optional[str] = None,
                  cfg_base: Optional[ConfigurationNode] = None,
                  secret_root: Optional[str] = None,
                  meta_cache: Optional[RunnerCache] = None) -> None:
+        self.experiment_name = experiment_name
         self._secret_root = secret_root
 
-        self.add_config(cfg_base, cfg_path)
+        # Using the base config, add on with the cfg_path
+        self.cfg = None
+        self.cfg_path = None
+        if cfg_base is not None:
+            self.reset_config(cfg_base)
+        elif cfg_path is not None:
+            raise AttributeError(
+                "Configuration path is defined without a baseline config being available!")
+        if cfg_path is not None:
+            self.merge_cfg(cfg_path)
 
+        # Setup the verbosity
         self.verbose = verbose
 
         self.experiment_dir = experiment_dir
@@ -67,7 +85,8 @@ class ExperimentRunner:
 
         self._outputs: Dict[str, str] = {}
 
-        self._implemented_run: Optional[Callable[[ExperimentRunner, ...], Any]] = None
+        self._implemented_run: Optional[Callable[[
+            ExperimentRunner, ...], Any]] = None
         self._META_CACHE = meta_cache
         self.recurring_pipeline = Pipeline(self._META_CACHE,
                                            'RUNNER_RECURRING_PIPELINE_META')
@@ -85,13 +104,13 @@ class ExperimentRunner:
         the recurring pipeline
         and the run function (if implemented)
         """
-        ret = f'Runner at {self.experiment_dir}\n'
+        ret = f'Runner: {self.experiment_name}\n'
         ret += f'\t - cache token: {self.CACHE.TOKEN}\n'
 
-        if self._has_cfg:
+        if self.has_cfg():
             ret += f'\t - configurations at: {self.cfg_path}\n'
         else:
-            ret += f'\t - no configuration file specified!'
+            ret += f'\t - no configuration file specified!\n'
 
         ret += f'\t - preprocessings functions {self.preprocessing_pipeline}\n'
         ret += f'\t - recurring pipeline {self.recurring_pipeline}\n'
@@ -102,7 +121,16 @@ class ExperimentRunner:
         return ret
 
     def reveal_true_path(self, path: str) -> str:
+        """
+        Gets a relative path 'path' and returns the true path in the local machine being runned
+        """
         return os.path.join(self._secret_root, path)
+
+    def hide_true_path(self, path: str) -> str:
+        """
+        Gets an absolute path and omits the part relating to the secret root
+        """
+        return os.path.relpath(path, self._secret_root)
 
     def merge_cfg(self, cfg_path: str) -> None:
         self.cfg_path = cfg_path
@@ -116,7 +144,7 @@ class ExperimentRunner:
         need to reload the experiment runner and you can simply change the hyperparameters in
         the yaml file and reload.
         """
-        if self._has_cfg and self.cfg_path is not None:
+        if self.has_cfg() and self.cfg_path is not None:
             self.cfg.merge_from_file(self.cfg_path)
 
     def export_logs(self) -> str:
@@ -135,7 +163,8 @@ class ExperimentRunner:
         if self.preprocessing_pipeline.function_count == 0 and self.verbose > 0:
             print("No functions in the preprocessing pipeline!")
         self.reload_cfg()
-        self.preprocessing_pipeline.run(keep=keep, verbose=self.verbose, runner=self)
+        self.preprocessing_pipeline.run(
+            keep=keep, verbose=self.verbose, runner=self)
 
     def implement_run(self, run: Callable[[ExperimentRunner, ...], Any]) -> None:
         """
@@ -156,12 +185,14 @@ class ExperimentRunner:
         our experiments by simply specifying the output yaml file as input again.
         """
         if self._implemented_run is None:
-            raise NotImplementedError("The run function is not implemented yet!")
+            raise NotImplementedError(
+                "The run function is not implemented yet!")
 
         if self.verbose > 0 and self.recurring_pipeline.function_count == 0:
             print("No functions in the recurring pipeline ...")
         self.reload_cfg()
-        self.recurring_pipeline.run(keep=True, verbose=self.verbose, runner=self)
+        self.recurring_pipeline.run(
+            keep=True, verbose=self.verbose, runner=self)
 
         self.CACHE.LOAD()
         ret = self._implemented_run(self, *args, **kwargs)
@@ -172,14 +203,18 @@ class ExperimentRunner:
             print("\t - saving files ...")
 
         with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
-            all_lines = ['This file contains a description on the files available in the experiment\n']
+            all_lines = [
+                'This file contains a description on the files available in the experiment\n']
             # Save configurations
-            if self._has_cfg and self.cfg is not None and self.cfg_path is not None:
-                name = '.'.join(os.path.basename(self.cfg_path).split('.')[:-1])
+            if self.has_cfg() and self.cfg is not None and self.cfg_path is not None:
+                name = '.'.join(os.path.basename(
+                    self.cfg_path).split('.')[:-1])
                 self.cfg.dump(
                     stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
-                shutil.copyfile(self.cfg_path, os.path.join(self.experiment_dir, f'{name}-input.yaml'))
-                all_lines.append(f"\t{name}-output.yaml : Contains the configurations after ending the runner.\n")
+                shutil.copyfile(self.cfg_path, os.path.join(
+                    self.experiment_dir, f'{name}-input.yaml'))
+                all_lines.append(
+                    f"\t{name}-output.yaml : Contains the configurations after ending the runner.\n")
                 all_lines.append(f"\t{name}-input.yaml : Contains the configurations when starting the runner.\n"
                                  f"\t You can feed the same file again as configurations and gain the same results.\n")
             # Save file descriptions in readme.txt

@@ -14,6 +14,7 @@ __C.SOLVER.LR = 0.0
 __C.SOLVER.OPTIMIZER_TYPE = 'not-specified!'
 __C.SOLVER.DEVICE = 'not-specified!'
 __C.SOLVER.METHOD = 'not-specified!'
+__C.SOLVER.BATCH_SIZE = -1
 
 __C.MODEL = ConfigurationNode()
 __C.MODEL.HYPER_PARAMETERS = ConfigurationNode()

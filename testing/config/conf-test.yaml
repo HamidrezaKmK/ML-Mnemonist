@@ -1,12 +1,13 @@
 DATASET:
-  TRAIN_NAME: 'california_housing_train.csv'
-  TEST_NAME: 'california_housing_test.csv'
+  TRAIN_NAME: 'data/california_housing_train.csv'
+  TEST_NAME: 'data/california_housing_test.csv'
 
 SOLVER:
-  LR: 0.0001
+  LR: 0.00001
   OPTIMIZER_TYPE: 'adam'
   DEVICE: 'cpu'
   METHOD: 'mlp-method'
+  BATCH_SIZE: 500
 
 MODEL:
   HYPER_PARAMETERS:

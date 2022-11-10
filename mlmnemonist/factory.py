@@ -6,7 +6,7 @@ import warnings
 from typing import Optional, Callable, List
 from datetime import date
 from dotenv import load_dotenv, find_dotenv
-from mlmnemonist.runner_cache import RunnerCache
+from mlmnemonist.runner_cache import RunnerCache, get_all_tokens, get_new_meta_token, get_new_token
 
 from mlmnemonist.experiment_runner import ExperimentRunner
 from yacs.config import CfgNode as ConfigurationNode
@@ -14,18 +14,26 @@ from yacs.config import CfgNode as ConfigurationNode
 from mlmnemonist.validation_tools.hyper_experiment_runner import HyperExperimentRunner
 
 
-def _get_new_experiment_path(root_experiments_path, experiment_name: Optional[str]):
+def _get_new_experiment_path(root_experiments_path, experiment_name: Optional[str], overwrite: bool):
     """
     Get the full directory of the experiment, if experiment_name is not specified
     then come up with the currently unavailable name!
     """
     # setup experiment name
-    middle_name = 'exp' if experiment_name is None else experiment_name
+    if experiment_name is None:
+        overwrite = False
+        middle_name = 'exp'
+    else:
+        middle_name = experiment_name
 
-    mex = 0
-    while os.path.exists(os.path.join(root_experiments_path, f'{date.today()}-{middle_name}-{mex}')):
-        mex += 1
-    exp_name = f'{date.today()}-{middle_name}-{mex}'
+    # See if you want to overwrite or not and if not find a unique name via mex
+    if overwrite is False:
+        mex = 0
+        while os.path.exists(os.path.join(root_experiments_path, f'{date.today()}-{middle_name}-{mex}')):
+            mex += 1
+        exp_name = f'{date.today()}-{middle_name}-{mex}'
+    else:
+        exp_name = f'{date.today()}-{middle_name}'
 
     experiment_path = os.path.join(root_experiments_path, exp_name)
     if not os.path.exists(experiment_path):
@@ -62,7 +70,8 @@ class RunnerFactory:
         - MLM_SECRET_ROOT_DIR=secret prefix used for secret paths
         """
         if RunnerFactory._instance_count > 0 and not override_singleton:
-            raise Exception("Singleton class RunnerFactory cannot be instantiated more than once!")
+            raise Exception(
+                "Singleton class RunnerFactory cannot be instantiated more than once!")
         RunnerFactory._instance_count += 1
 
         load_dotenv(find_dotenv(), verbose=True)  # Load .env
@@ -78,7 +87,8 @@ class RunnerFactory:
             raise RuntimeError("No experiment directory defined in constructor or .env!\n"
                                "Define in .env using MLM_EXPERIMENT_DIR=/PATH/TO/DIR")
         self.experiment_dir = os.path.join(all_args[0], 'mnemonic-experiments')
-        self.hyper_experiment_dir = os.path.join(all_args[0], 'mnemonic-hyper-experiments')
+        self.hyper_experiment_dir = os.path.join(
+            all_args[0], 'mnemonic-hyper-experiments')
 
         if not os.path.exists(self.experiment_dir):
             os.mkdir(self.experiment_dir)
@@ -88,7 +98,8 @@ class RunnerFactory:
         if all_args[2] is None:
             raise RuntimeError("No checkpoint directory defined in constructor or .env!\n"
                                "Define in .env using MLM_CHECKPOINT_DIR=/PATH/TO/CHECKPOINTS")
-        self.checkpoint_dir = os.path.join(all_args[2], '.mnemonic-checkpoints')
+        self.checkpoint_dir = os.path.join(
+            all_args[2], '.mnemonic-checkpoints')
         if not os.path.exists(self.checkpoint_dir):
             os.mkdir(self.checkpoint_dir)
 
@@ -103,7 +114,8 @@ class RunnerFactory:
         shutil.rmtree(os.path.join(self.experiment_dir, experiment_name))
 
     def delete_hyper_experiment(self, hyper_experiment_name: str):
-        shutil.rmtree(os.path.join(self.hyper_experiment_dir, hyper_experiment_name))
+        shutil.rmtree(os.path.join(
+            self.hyper_experiment_dir, hyper_experiment_name))
 
     def delete_from_cache(self, cache_prefix: str):
         for f in os.listdir(self.checkpoint_dir):
@@ -122,7 +134,8 @@ class RunnerFactory:
         Deletes everything in the checkpoints directory
         """
         while prompt:
-            resp = input(f"This will delete everything in {self.checkpoint_dir}! Are you sure? [y/n] ")
+            resp = input(
+                f"This will delete everything in {self.checkpoint_dir}! Are you sure? [y/n] ")
             if resp == 'n':
                 return
             elif resp == 'y':
@@ -135,18 +148,19 @@ class RunnerFactory:
         it retrieves a runner with all its cached data using cache_token
         """
 
+        if f'{cache_token}-META' not in get_all_tokens(self.checkpoint_dir):
+            raise FileNotFoundError(
+                f"No runner with cache token {cache_token} found in {self.checkpoint_dir}")
         meta_cache = RunnerCache(directory=self.checkpoint_dir,
-                            token=f'{cache_token}-META')
+                                 token=f'{cache_token}-META')
 
         meta_cache.LOAD()
 
         meta = meta_cache.SET_IFN('RUNNER_CONSTRUCTOR_META', None)
         cfg_base = meta_cache.SET_IFN_CFG('RUNNER_CFG_BASE_META', None)
 
-        if meta is None or cfg_base is None:
-            raise FileNotFoundError(f"No runner with cache token {cache_token} found in {self.checkpoint_dir}")
-
-        runner = ExperimentRunner(experiment_dir=meta['experiment_dir'],
+        runner = ExperimentRunner(experiment_name=meta['experiment_name'],
+                                  experiment_dir=meta['experiment_dir'],
                                   checkpoint_dir=self.checkpoint_dir,
                                   verbose=meta['verbose'],
                                   cache_token=cache_token,
@@ -155,8 +169,10 @@ class RunnerFactory:
                                   secret_root=self.secret_root,
                                   meta_cache=meta_cache)
 
-        preprocessing_pipeline = meta_cache.SET_IFN('RUNNER_PREP_PIPELINE_META', [])
-        recurring_pipeline = meta_cache.SET_IFN('RUNNER_RECURRING_PIPELINE_META', [])
+        preprocessing_pipeline = meta_cache.SET_IFN(
+            'RUNNER_PREP_PIPELINE_META', [])
+        recurring_pipeline = meta_cache.SET_IFN(
+            'RUNNER_RECURRING_PIPELINE_META', [])
         run_func = meta_cache.SET_IFN('RUNNER_RUN_META', None)
         for func in preprocessing_pipeline:
             runner.preprocessing_pipeline.update_function(func)
@@ -166,22 +182,36 @@ class RunnerFactory:
             runner.implement_run(run_func)
         return runner
 
-    def create_experiment_runner(self, verbose: int = 0,
+    def create_experiment_runner(self,
+                                 experiment_name: Optional[str] = None,
                                  description: str = 'description not specified!',
                                  cfg_base: Optional[ConfigurationNode] = None,
-                                 experiment_name: Optional[str] = None,
                                  cfg_dir: Optional[str] = None,
-                                 cache_token: Optional[str] = None) -> ExperimentRunner:
+                                 cache_token: Optional[str] = None,
+                                 verbose: int = 0,
+                                 overwrite: bool = True) -> ExperimentRunner:
         """
-        This function should be used to create
+        This function should be used to create experiment runners
         """
         # Get a new path and assign it to the experiment, all logs will be stored in it
-        experiment_path = _get_new_experiment_path(self.experiment_dir, experiment_name)
+        experiment_path = _get_new_experiment_path(
+            self.experiment_dir, experiment_name, overwrite=overwrite)
+        experiment_name = os.path.basename(experiment_path)
 
         # Create a description file and store in the experiment's path
         with open(os.path.join(experiment_path, 'DESCRIPTION.txt'), 'w') as f:
             f.write(description)
 
+        # Store the metadata used to construct the experiment runner
+        cache_token_meta = '{cache_token}-META' if cache_token is not None else get_new_meta_token(
+            self.checkpoint_dir)
+        meta_cache = RunnerCache(
+            directory=self.checkpoint_dir, token=cache_token_meta)
+        meta_cache.LOAD()
+
+        # Create a string called cfg_path which contains the configuration directory
+        # This string might be set to None which means that the experiment does not take
+        # in any configurations
         cfg_path = None
         if cfg_dir is not None:
             if self.config_dir is not None:
@@ -189,28 +219,31 @@ class RunnerFactory:
             else:
                 cfg_path = cfg_dir
 
-        # Store the metadata used to construct the experiment runner
-        meta_cache = RunnerCache(directory=self.checkpoint_dir, token=f'{cache_token}-META')
-        meta_cache.LOAD()
-
         # Construct the experiment runner itself and store it to return ultimately
-        ret = ExperimentRunner(experiment_dir=experiment_path,
-                               checkpoint_dir=self.checkpoint_dir, verbose=verbose,
-                               cache_token=cache_token,
+        ret = ExperimentRunner(experiment_name=experiment_name,
+                               experiment_dir=experiment_path,
+                               checkpoint_dir=self.checkpoint_dir,
+                               verbose=verbose,
+                               cache_token=cache_token if cache_token is not None else get_new_token(
+                                   self.checkpoint_dir),
                                cfg_path=cfg_path,
-                               cfg_base=copy.deepcopy(cfg_base),
+                               cfg_base=None if cfg_base is None else copy.deepcopy(
+                                   cfg_base),
                                secret_root=self.secret_root,
                                meta_cache=meta_cache)
 
         # Store the fields used for the constructor in the cache as a dictionary
         meta = {
+            'experiment_name': ret.experiment_name,
             'experiment_dir': ret.experiment_dir,
             'verbose': ret.verbose,
             'cfg_path': ret.cfg_path
         }
         meta_cache.SET('RUNNER_CONSTRUCTOR_META', meta)
-        # Store the configuration file itself
-        meta_cache.SET_CFG('RUNNER_CFG_BASE_META', ret.get_cfg())
+        if ret.get_cfg() is not None:
+            # Store the configuration file itself
+            meta_cache.SET_CFG('RUNNER_CFG_BASE_META', ret.get_cfg())
+
         meta_cache.SAVE()
         return ret
 
@@ -222,7 +255,8 @@ class RunnerFactory:
         cfg_base = cache.SET_IFN_CFG('CFG_BASE_HYPER_META', None)
 
         if meta is None or cfg_base is None:
-            raise FileNotFoundError(f"Metadata for hyper runner not found in {self.checkpoint_dir}")
+            raise FileNotFoundError(
+                f"Metadata for hyper runner not found in {self.checkpoint_dir}")
 
         runners = []
         for runner_tokens in meta['runner_cache_tokens']:
@@ -249,7 +283,8 @@ class RunnerFactory:
                                        experiment_name: Optional[str] = None
                                        ) -> HyperExperimentRunner:
         experiment_name = 'hyper-exp' if experiment_name is None else experiment_name
-        hyper_experiment_path = _get_new_experiment_path(self.hyper_experiment_dir, experiment_name)
+        hyper_experiment_path = _get_new_experiment_path(
+            self.hyper_experiment_dir, experiment_name)
         with open(os.path.join(hyper_experiment_path, 'DESCRIPTION.txt'), 'w') as f:
             f.write(description)
         cfg_palette_path = os.path.join(self.config_dir, cfg_palette_path)
@@ -267,7 +302,8 @@ class RunnerFactory:
             'verbose': verbose,
             'runner_cache_tokens': [x.CACHE.TOKEN for x in experiment_runners]
         }
-        meta_cache = RunnerCache(directory=ret.checkpoint_dir, token=f'{ret.CACHE.TOKEN}-META')
+        meta_cache = RunnerCache(
+            directory=ret.checkpoint_dir, token=f'{ret.CACHE.TOKEN}-META')
         meta_cache.SET('HYPER_CONSTRUCTOR_META', meta_data)
         meta_cache.SET_CFG('CFG_BASE_HYPER_META', cfg_base)
         meta_cache.SAVE()

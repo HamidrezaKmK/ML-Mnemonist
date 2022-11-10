@@ -13,33 +13,35 @@ import yacs.config
 MAX_CACHE_SIZE: int = 20
 
 
-def _get_all_tokens(directory: str) -> List[str]:
+def get_all_tokens(directory: str) -> List[str]:
     all_names = set()
     for f in os.listdir(directory):
         if '-MLM-CACHE-TOK' not in f:
             continue
-        name = f.split('-MLM-CACHE-TOK')[0] + '-MLM-CACHE-TOK'
+        name = f.split('-MLM-CACHE-TOK')[0]
         all_names.add(name)
     return list(all_names)
 
 
-def _get_new_token(directory: str) -> str:
-    all_tokens = _get_all_tokens(directory)
+def get_new_token(directory: str, pref: Optional[str] = '') -> str:
+    all_tokens = get_all_tokens(directory)
     mex = 0
-    while f'{mex}' in all_tokens:
+    while f'{mex}{pref}' in all_tokens:
         mex += 1
-    return f'{mex}'
+    return f'{mex}{pref}'
 
+def get_new_meta_token(directory: str) -> str:
+    return get_new_token(directory, pref='-META')
 
 class RunnerCache:
 
     def __init__(self, directory: str, token: Optional[str] = None):
-        all_tokens = _get_all_tokens(directory)
+        all_tokens = get_all_tokens(directory)
 
         if token not in all_tokens and len(all_tokens) >= MAX_CACHE_SIZE:
             raise Exception("Maximum cache limit reached!\n"
                             f"Remove files from {directory}")
-        self._cache_token = token if token is not None else _get_new_token(directory)
+        self._cache_token = token if token is not None else get_new_token(directory)
         self._cache_token += '-MLM-CACHE-TOK'
 
         self._cached_primitives: Dict[str, Any] = {}
