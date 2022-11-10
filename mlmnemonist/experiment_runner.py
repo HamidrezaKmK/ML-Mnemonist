@@ -194,7 +194,9 @@ class ExperimentRunner:
         self.recurring_pipeline.run(
             keep=True, verbose=self.verbose, runner=self)
 
+        # After running the recurring pipeline, the cache loading takes place
         self.CACHE.LOAD()
+        
         ret = self._implemented_run(self, *args, **kwargs)
 
         # Save files
