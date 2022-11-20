@@ -76,6 +76,7 @@ class ExperimentRunner:
         self.verbose = verbose
 
         self.experiment_dir = experiment_dir
+        self.output_dir = experiment_dir
         if not os.path.exists(self.experiment_dir):
             raise FileNotFoundError(
                 f"File {self.experiment_dir} not found! Maybe you have deleted the experiment ...\n"
@@ -177,6 +178,26 @@ class ExperimentRunner:
     def ADD_OUTPUT(self, file_dir: str, description: str):
         self._outputs[file_dir] = description
 
+    def set_output_dir(self, output_dir: str):
+        self.output_dir = output_dir
+
+    def output_results(self) -> None:
+        with open(os.path.join(self.output_dir, 'readme.txt'), 'w') as f:
+            all_lines = [
+                'This file contains a description on the files available in the experiment\n']
+            # Save configurations
+            if self.has_cfg() and self.cfg is not None and self.cfg_path is not None:
+                name = '.'.join(os.path.basename(
+                    self.cfg_path).split('.')[:-1])
+                self.cfg.dump(
+                    stream=open(os.path.join(self.output_dir, f'{name}-output.yaml'), 'w'))
+                all_lines.append(
+                    f"\t{name}-output.yaml : Contains the configurations after ending the runner.\n")
+            # Save file descriptions in readme.txt
+            all_lines.append("Output files and their descriptions:\n")
+            all_lines += [f'\t{x} : {self._outputs[x]}\n' for x in self._outputs.keys()]
+            f.writelines(all_lines)
+            
     def run(self, *args, **kwargs):
         """
         This function runs an arbitrary method that is specified in the
@@ -204,23 +225,7 @@ class ExperimentRunner:
             print("[DONE] running over!")
             print("\t - saving files ...")
 
-        with open(os.path.join(self.experiment_dir, 'readme.txt'), 'w') as f:
-            all_lines = [
-                'This file contains a description on the files available in the experiment\n']
-            # Save configurations
-            if self.has_cfg() and self.cfg is not None and self.cfg_path is not None:
-                name = '.'.join(os.path.basename(
-                    self.cfg_path).split('.')[:-1])
-                self.cfg.dump(
-                    stream=open(os.path.join(self.experiment_dir, f'{name}-output.yaml'), 'w'))
-                shutil.copyfile(self.cfg_path, os.path.join(
-                    self.experiment_dir, f'{name}-input.yaml'))
-                all_lines.append(
-                    f"\t{name}-output.yaml : Contains the configurations after ending the runner.\n")
-                all_lines.append(f"\t{name}-input.yaml : Contains the configurations when starting the runner.\n"
-                                 f"\t You can feed the same file again as configurations and gain the same results.\n")
-            # Save file descriptions in readme.txt
-            all_lines.append("Output files and their descriptions:\n")
-            all_lines += [f'\t{x} : {self._outputs[x]}\n' for x in self._outputs.keys()]
-            f.writelines(all_lines)
+        # Save all the outputs
+        self.output_results()
+
         return ret

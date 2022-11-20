@@ -10,6 +10,7 @@ SOLVER:
   OPTIMIZER_TYPE: 'adam'
   DEVICE: 'cpu'
   METHOD: 'mlp-method'
+  BATCH_SIZE: 500
 
 MODEL:
   HYPER_PARAMETERS:

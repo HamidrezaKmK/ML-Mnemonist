@@ -43,15 +43,13 @@ def _get_new_experiment_path(root_experiments_path, experiment_name: Optional[st
 
 class RunnerFactory:
     """
-    An experiment runner factory that creates experiment runners and customizes them.
+    An experiment runner and hyper experiment runner factory that creates experiment runners, 
+    hyper-experiment runners, customizes them, and keeps track of their cached values
 
-    Use the 'create' method first to create a generic runner and then add on new features to the runner.
+    This class is a singleton and FACTORY is the only instance of it which is defined here
 
-    - load_combo_dataset: loads a dataset according to the config file given to it; this directly calls
-                            ExperimentRunner.load_in_dataframe
-    - load_cv_fold: loads the cv_folds according to the paths given to it in the environment. This function
-                        directly calls ExperimentRunner.load_cv_fold
-    - implement_run: This function
+    - Use the create method to create a new experiment runner or hyper experiment runner
+    - Use the retrieve method to retrieve an experiment runner or hyper experiment from the cache
     """
 
     _instance_count: int = 0
@@ -62,12 +60,14 @@ class RunnerFactory:
                  config_dir: Optional[str] = None,
                  secret_dir: Optional[str] = None,
                  override_singleton: bool = False):
+
         """
         Loads data from .env and fills up the following:
         - MLM_EXPERIMENT_DIR=The directory containing the experiments
         - MLM_CHECKPOINT_DIR=Directory containing all the checkpoints
         - MLM_CONFIG_DIR=directory containing all the .yaml files
         - MLM_SECRET_ROOT_DIR=secret prefix used for secret paths
+        You can also create an instance of factory by passing the above arguments and this will override the .env file
         """
         if RunnerFactory._instance_count > 0 and not override_singleton:
             raise Exception(
@@ -80,9 +80,12 @@ class RunnerFactory:
                     checkpoint_dir, 'MLM_CHECKPOINT_DIR',
                     config_dir, 'MLM_CONFIG_DIR',
                     secret_dir, 'MLM_SECRET_ROOT_DIR']
+                    
         for i in range(0, len(all_args), 2):
             if all_args[i] is None:
                 all_args[i] = os.getenv(all_args[i + 1])
+        # all_args[2i] contains the actual value for the i-th argument
+
         if all_args[0] is None:
             raise RuntimeError("No experiment directory defined in constructor or .env!\n"
                                "Define in .env using MLM_EXPERIMENT_DIR=/PATH/TO/DIR")
@@ -117,6 +120,16 @@ class RunnerFactory:
         shutil.rmtree(os.path.join(
             self.hyper_experiment_dir, hyper_experiment_name))
 
+    def cached_runners(self):
+        """
+        Returns a list of tokens of all the cached runners
+        """
+        all_tokens = []
+        for f in os.listdir(self.checkpoint_dir):
+            token = f.split('_')[0]
+            all_tokens.append(token)  
+        return list(set(all_tokens))
+            
     def delete_from_cache(self, cache_prefix: str):
         for f in os.listdir(self.checkpoint_dir):
             real_dir = os.path.join(self.checkpoint_dir, cache_prefix)
@@ -203,7 +216,7 @@ class RunnerFactory:
             f.write(description)
 
         # Store the metadata used to construct the experiment runner
-        cache_token_meta = '{cache_token}-META' if cache_token is not None else get_new_meta_token(
+        cache_token_meta = f'{cache_token}-META' if cache_token is not None else get_new_meta_token(
             self.checkpoint_dir)
         meta_cache = RunnerCache(
             directory=self.checkpoint_dir, token=cache_token_meta)
@@ -258,6 +271,8 @@ class RunnerFactory:
             raise FileNotFoundError(
                 f"Metadata for hyper runner not found in {self.checkpoint_dir}")
 
+        # Retrieve all the experiment runners using the cache tokens that have been
+        # saved in the meta-cache
         runners = []
         for runner_tokens in meta['runner_cache_tokens']:
             runners.append(self.retrieve_experiment_runner(runner_tokens))
@@ -280,13 +295,19 @@ class RunnerFactory:
                                        verbose: int = 0,
                                        description: str = 'description of hyper experiment not specified!',
                                        cache_token: Optional[str] = None,
-                                       experiment_name: Optional[str] = None
-                                       ) -> HyperExperimentRunner:
-        experiment_name = 'hyper-exp' if experiment_name is None else experiment_name
+                                       experiment_name: Optional[str] = None,
+                                       overwrite: bool = True) -> HyperExperimentRunner:
+        # Get a new path and assign it to the experiment, all logs will be stored in it
         hyper_experiment_path = _get_new_experiment_path(
-            self.hyper_experiment_dir, experiment_name)
+            self.hyper_experiment_dir, experiment_name, overwrite=overwrite)
+        experiment_name = os.path.basename(hyper_experiment_path)
+
+        # Create a description file and store in the experiment's path
         with open(os.path.join(hyper_experiment_path, 'DESCRIPTION.txt'), 'w') as f:
             f.write(description)
+
+        # Store the metadata used to construct the experiment runner
+        cache_token = cache_token if cache_token is not None else get_new_token(self.checkpoint_dir)
         cfg_palette_path = os.path.join(self.config_dir, cfg_palette_path)
         ret = HyperExperimentRunner(cfg_palette_dir=cfg_palette_path,
                                     cfg_base=cfg_base,
